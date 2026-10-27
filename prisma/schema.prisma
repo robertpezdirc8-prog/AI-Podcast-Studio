@@ -33,6 +33,10 @@ model Episode {
   playCount    Int       @default(0)
   lastPlayedAt DateTime?
   progressMs   Int       @default(0)
+  // Javna delitev (Task 45): naključni žeton povezave /?deli=<shareToken>;
+  // sharedAt je nastavljen, kadar je deljenje VKLOPENO (žeton ostane stabilen)
+  shareToken   String?   @unique
+  sharedAt     DateTime?
   createdAt    DateTime  @default(now())
   lines        Line[]
 }

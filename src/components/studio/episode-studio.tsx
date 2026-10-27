@@ -95,6 +95,7 @@ import { dimIfNoMatch, foldText, HighlightedText, ScenarioSearchBar } from './sc
 import { WordKaraoke } from './word-karaoke';
 import { ShowNotesPanel } from './show-notes-panel';
 import { ShortcutsDialog } from './shortcuts-dialog';
+import { ShareDialog } from './share-dialog';
 
 interface EpisodeStudioProps {
   episode: Episode;
@@ -243,6 +244,9 @@ export function EpisodeStudio({
   const [searchActiveIdx, setSearchActiveIdx] = useState(0);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Javna delitev epizode (Task 45)
+  const [shareOpen, setShareOpen] = useState(false);
 
   // Trojni pogled studia (V4 iz analize UI): Scenarij / Zapiski / Dramaturgija
   const [studioTab, setStudioTab] = useState<'scenarij' | 'zapiski' | 'dramaturgija'>(
@@ -1853,6 +1857,16 @@ export function EpisodeStudio({
                 size="sm"
                 variant="outline"
                 className="gap-1.5 border-zinc-700 bg-zinc-950/60 text-zinc-300 hover:border-amber-500/40 hover:text-amber-400"
+                onClick={() => setShareOpen(true)}
+                aria-label="Deli epizodo z javno povezavo"
+              >
+                <Share2 className="size-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Deli</span>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-zinc-700 bg-zinc-950/60 text-zinc-300 hover:border-amber-500/40 hover:text-amber-400"
                 onClick={() => void handleCover()}
                 disabled={coverPending}
                 aria-label={coverPath ? 'Ustvari nov ovitek' : 'Ustvari ovitek epizode'}
@@ -2397,6 +2411,12 @@ export function EpisodeStudio({
       />
 
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <ShareDialog
+        episodeId={episode.id}
+        episodeTitle={episode.title}
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+      />
     </>
   );
 }

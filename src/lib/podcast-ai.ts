@@ -1706,7 +1706,7 @@ const GAP_CHAPTER_SECONDS = 0.42
 const JINGLE_INTRO_FILE = 'jingle_intro.wav'
 const JINGLE_OUTRO_FILE = 'jingle_outro.wav'
 
-interface GapLineInfo {
+export interface GapLineInfo {
   speaker?: string | null
   chapter?: string | null
   emotion?: string | null
@@ -3500,13 +3500,15 @@ function youtubeClock(ms: number): string {
 
 /**
  * Izračuna poglavja na ČASOVNI LINIJI IZVOZA (z uvodno melodijo):
+ * Celotna časovnica (Task 45): žigi poglavij + skupno trajanje.
  * Uvod na 0:00, vsako poglavje na začetek svoje prve vrstice.
  * Koraka naravnost zrcali sestavljanje v exportEpisodeMp3 (kontekstne pavze
- * + PREKRIVANJA backchannelov).
+ * + PREKRIVANJA backchannelov) — `computeExportChapters` je le ožji pogled
+ * na ta rezultat (deljen z javno delitveno stranjo).
  */
-export function computeExportChapters(
+export function computeExportTimeline(
   lines: (GapLineInfo & { chapter: string | null; audioPath: string | null })[],
-): ChapterMarker[] {
+): { markers: ChapterMarker[]; totalMs: number } {
   const markers: ChapterMarker[] = [{ title: 'Uvod', startMs: 0 }]
   const seen = new Set<string>()
   let cursor = JINGLE_INTRO_MS + GAP_TURN_SECONDS * 1000
@@ -3534,7 +3536,13 @@ export function computeExportChapters(
     prevDurMs = dur
     itemIndex += 1
   }
-  return markers
+  return { markers, totalMs: Math.max(0, Math.round(cursor)) }
+}
+
+export function computeExportChapters(
+  lines: (GapLineInfo & { chapter: string | null; audioPath: string | null })[],
+): ChapterMarker[] {
+  return computeExportTimeline(lines).markers
 }
 
 /** YouTube opis poglavij: prvi žig mora biti 0:00, format m:ss ali h:mm:ss Naslov. */

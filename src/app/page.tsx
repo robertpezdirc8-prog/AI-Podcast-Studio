@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { EpisodeLibrary } from '@/components/studio/episode-library';
 import { EpisodeStudio } from '@/components/studio/episode-studio';
 import { NewEpisodeDialog } from '@/components/studio/new-episode-dialog';
+import { ShareView } from '@/components/studio/share-view';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from '@/components/ui/sonner';
@@ -24,8 +25,11 @@ export default function Home() {
   const [episode, setEpisode] = useState<Episode | null>(null);
   const [autoPlay, setAutoPlay] = useState(false);
   const [playing, setPlaying] = useState(false);
+  // Javna delitev (Task 45): /?deli=<token> upodobi javno stran poslušanja.
+  const [shareToken, setShareToken] = useState<string | null>(null);
 
   const isStudio = studioId !== null;
+  const isShare = shareToken !== null;
 
   const loadEpisodes = useCallback(async (showLoading = false) => {
     if (showLoading) setLoading(true);
@@ -42,6 +46,14 @@ export default function Home() {
   useEffect(() => {
     void loadEpisodes(true);
   }, [loadEpisodes]);
+
+  // Žeton delitve beremo ob zagonu in ob gumbu Nazaj v brskalniku.
+  useEffect(() => {
+    const read = () => setShareToken(new URLSearchParams(window.location.search).get('deli'));
+    read();
+    window.addEventListener('popstate', read);
+    return () => window.removeEventListener('popstate', read);
+  }, []);
 
   // Pridobi celotno epizodo, kadar se odpre studio.
   useEffect(() => {
@@ -75,6 +87,13 @@ export default function Home() {
     setStudioId(null);
     setPlaying(false);
     void loadEpisodes(false); // tiha osvežitev povzetkov
+  }, [loadEpisodes]);
+
+  // Izhod iz javnega pogleda — počistimo URL in pokažemo knjižnico.
+  const exitShare = useCallback(() => {
+    window.history.replaceState({}, '', '/');
+    setShareToken(null);
+    void loadEpisodes(false);
   }, [loadEpisodes]);
 
   const handleCreated = useCallback(
@@ -137,7 +156,7 @@ export default function Home() {
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {isStudio ? (
+            {isShare ? null : isStudio ? (
               <Button
                 variant="ghost"
                 onClick={backToLibrary}
@@ -159,7 +178,18 @@ export default function Home() {
 
       <main className="flex flex-1 flex-col">
         <AnimatePresence mode="wait" initial={false}>
-          {isStudio ? (
+          {isShare ? (
+            <motion.div
+              key="share"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={viewTransition}
+              className="flex flex-1 flex-col"
+            >
+              <ShareView key={shareToken} token={shareToken} onExit={exitShare} />
+            </motion.div>
+          ) : isStudio ? (
             <motion.div
               key="studio"
               initial={{ opacity: 0, y: 14 }}

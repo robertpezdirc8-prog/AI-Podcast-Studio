@@ -8,6 +8,7 @@ import type {
   EpisodeSummary,
   Language,
   Line,
+  ShowNotes,
   VoiceId,
 } from './podcast-types';
 import type { ShortsCaptionStyle } from '@/lib/podcast-ai';
@@ -368,6 +369,57 @@ export async function updateEpisodeProgress(
   } catch {
     // statistika ni kritična — napako ignoriraj
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Javna delitev (Task 45): /?deli=<token>                              */
+/* ------------------------------------------------------------------ */
+
+export interface ShareState {
+  shareToken: string | null;
+  sharedAt: string | null;
+  /** Polna povezava za deljenje (samo po POST vklopu). */
+  url?: string;
+}
+
+/** Trenutno stanje delitve epizode (brez stranskih učinkov). */
+export async function fetchShareState(id: string): Promise<ShareState> {
+  const res = await fetch(`/api/episodes/${encodeURIComponent(id)}/share`, { cache: 'no-store' });
+  return parseResponse<ShareState>(res);
+}
+
+/** Vklopi/izklopi javno povezavo epizode. */
+export async function setEpisodeShare(id: string, enabled: boolean): Promise<ShareState> {
+  const res = await fetch(`/api/episodes/${encodeURIComponent(id)}/share`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled }),
+  });
+  return parseResponse<ShareState>(res);
+}
+
+/** Javno objavljeni podatki epizode (brez ID-jev — samo vsebina za poslušanje). */
+export interface ShareEpisode {
+  title: string;
+  topic: string;
+  style: string;
+  language: string;
+  status: string;
+  coverPath: string | null;
+  hosts: { name: string; voice: string }[];
+  summary: ShowNotes | null;
+  createdAt: string;
+  hasAudio: boolean;
+  durationSec: number;
+  chapters: { title: string; startSec: number }[];
+  lines: { speaker: string; text: string; chapter: string | null }[];
+}
+
+/** Pridobi deljeno epizodo preko žetona. 404 → uporabniku prijazen Error. */
+export async function fetchSharedEpisode(token: string): Promise<ShareEpisode> {
+  const res = await fetch(`/api/share/${encodeURIComponent(token)}`, { cache: 'no-store' });
+  const data = await parseResponse<{ episode: ShareEpisode }>(res);
+  return data.episode;
 }
 
 const POSITION_KEY_PREFIX = 'aps_pos_';
