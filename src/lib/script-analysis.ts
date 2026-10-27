@@ -95,6 +95,71 @@ export function formatDuration(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+/* ------------------------------------------------------------------ */
+/* Ciljno trajanje (Task 47) — odmik ocene/realnosti proti cilju       */
+/* ------------------------------------------------------------------ */
+
+/** Toleranca cilja: odmik do ±15 % velja za dosežen (radijska praksa). */
+const TARGET_TOLERANCE = 0.15;
+
+export interface DurationDelta {
+  /** razlika v sekundah: pozitivno = NAD ciljem (predolgo) */
+  diffSec: number;
+  /** odmik kot delež cilja (0,34 = 34 % nad/pod) */
+  percent: number;
+  /** 'under' = prekratko, 'over' = predolgo, 'ok' = znotraj ±15 % */
+  state: 'under' | 'ok' | 'over';
+  /** koliko besed DODATI (under) ali ODSTRANITI (over) — 0 pri ok */
+  wordsDelta: number;
+}
+
+/** Odmik dejanskega/ocenjenega trajanja proti ciljnemu (čista matematika). */
+export function durationDelta(actualSec: number, targetSec: number): DurationDelta {
+  const diffSec = Math.round(actualSec - targetSec);
+  const percent = targetSec > 0 ? diffSec / targetSec : 0;
+  const state: DurationDelta['state'] =
+    Math.abs(percent) <= TARGET_TOLERANCE ? 'ok' : percent > 0 ? 'over' : 'under';
+  return {
+    diffSec,
+    percent,
+    state,
+    wordsDelta: state === 'ok' ? 0 : Math.round(Math.abs(diffSec) * WORDS_PER_SECOND),
+  };
+}
+
+/** Ponujeni cilji (radijski formati: prispevek, oddaja, poglobljena debata). */
+export const TARGET_OPTIONS: { sec: number; label: string }[] = [
+  { sec: 60, label: '1 min' },
+  { sec: 120, label: '2 min' },
+  { sec: 180, label: '3 min' },
+  { sec: 300, label: '5 min' },
+  { sec: 600, label: '10 min' },
+];
+
+const TARGET_STORAGE_KEY = 'aps_cilj_trajanje';
+
+/** Preberi shranjeni cilj (localStorage); null = brez cilja. Strežniku varno vrne null. */
+export function readTargetSeconds(): number | null {
+  try {
+    if (typeof window === 'undefined') return null;
+    const value = Number(window.localStorage.getItem(TARGET_STORAGE_KEY));
+    return Number.isFinite(value) && value > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Shrani/izbriši cilj (null = izbriši). Fail-soft (zasebni način). */
+export function writeTargetSeconds(sec: number | null): void {
+  try {
+    if (typeof window === 'undefined') return;
+    if (sec && sec > 0) window.localStorage.setItem(TARGET_STORAGE_KEY, String(sec));
+    else window.localStorage.removeItem(TARGET_STORAGE_KEY);
+  } catch {
+    // localStorage lahko manjka — ignoriraj
+  }
+}
+
 export function analyzeScript(parsed: ParsedScript): ScriptAnalysis {
   const { lines, speakers, chapterCount } = parsed;
 

@@ -12,6 +12,7 @@ AI Podcast Studio je splet aplikacija, ki iz ene teme samostojno napiše dvogost
 - **Dvogostiteljski skript** (LLM) — dramaturgija, poglavja, show notes, naravna izmenjava vprašanj in odgovorov
 - **Lastna skripta brez AI** — lokalni razčlenjevalnik + **7 profesionalnih šablon** (novičarska oddaja, intervju, raziskovalna zgodba, kulturni pogovor, debata, top 5 seznam, izobraževalna razlaga) s poklicno radijsko dramaturgijo
 - **Dramaturški pregled** — živa analiza skripte po radijskih pravilih (kavelj, vodniki, poglavja, monologi, ravnovesje govorcev, CTA zaključek) + ocena trajanja — vsi izračuni lokalni, brez AI
+- **Ciljno trajanje** — izberi cilj (1/2/3/5/10 min) in takoj vidiš odmik: „dodaj ≈ N besed“ / „odstrani ≈ N besed“ / „cilj dosežen (±15 %)“ — v dialogu proti oceni, v studiu proti realnemu trajanju iz avdia; izbira si pamti (localStorage)
 - **Nevronski glasovi Edge TTS** — `sl-SI-RokNeural` (moški) in `sl-SI-PetraNeural` (ženska), brezplačno, brez API ključa
 - **Derivirani glasovi** — Jakob in Matjaž kot Rok s pitch-shiftom ±2 poltona (prava slovenščina, drugačen ton)
 - **Lokalni zasilni TTS** — Piper (`sl_SI-artur-medium`, edini odprtokodni pravi slovenski studijski glas) če Edge ni dosegljiv
@@ -149,6 +150,7 @@ scripts/                        # razvojna orodja (regen audio, tempo-audit, ...
 - [x] Trojni pogled studia (Scenarij/Zapiski/Dramaturgija) + dramaturgija obstoječih epizod
 - [x] Oblika valovanja v predvajalniku (RMS vrhovi, klik/vleci = skok)
 - [x] Javna delitvena stran epizode (`/?deli=<žeton>` — predvajalnik, poglavja, zapiski, prepis, MP3)
+- [x] Ciljno trajanje v dramaturgiji (1–10 min, odmik v besedah, sinhronizirano dialog ↔ studio)
 - [ ] Tretji gost-glas (ko Edge doda nova sl-SI glasova)
 
 ## 📄 Licenca

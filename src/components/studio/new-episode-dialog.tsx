@@ -54,7 +54,12 @@ import {
 import { activatePan, setElementPan } from '@/lib/audio-pan';
 import { panForVoice } from '@/lib/podcast-pan';
 import { parseScript, SCRIPT_LIMITS } from '@/lib/script-parser';
-import { analyzeScript, formatDuration } from '@/lib/script-analysis';
+import {
+  analyzeScript,
+  formatDuration,
+  readTargetSeconds,
+  writeTargetSeconds,
+} from '@/lib/script-analysis';
 import { SCRIPT_TEMPLATES, type ScriptTemplate } from '@/lib/script-templates';
 import {
   EPISODE_LENGTHS,
@@ -69,6 +74,7 @@ import {
   type VoiceId,
 } from '@/lib/podcast-types';
 import { cn } from '@/lib/utils';
+import { TargetDeltaLine, TargetDurationRow } from './target-duration';
 
 const TOPIC_SUGGESTIONS = [
   'Zakaj je nebo modro?',
@@ -132,6 +138,13 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
   const parsed = useMemo(() => parseScript(scriptText), [scriptText]);
   const analysis = useMemo(() => analyzeScript(parsed), [parsed]);
   const [analysisOpen, setAnalysisOpen] = useState(false);
+  // Ciljno trajanje (Task 47) — ista izbira kot v tabu Dramaturgija studia.
+  // Dialog je montiran od začetka, zato stanje OBOŽIMO ob vsakem odprtju
+  // (v studiu lahko uporabnik cilj medtem spremeni).
+  const [targetSec, setTargetSec] = useState<number | null>(() => readTargetSeconds());
+  useEffect(() => {
+    if (open) setTargetSec(readTargetSeconds());
+  }, [open]);
   const scriptValid =
     scriptText.trim().length >= SCRIPT_LIMITS.minChars &&
     parsed.lines.length >= SCRIPT_LIMITS.minLines;
@@ -534,6 +547,22 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                   </button>
                   {analysisOpen && (
                     <div className="space-y-3.5 border-t border-zinc-800 px-3 py-3">
+                      {/* Ciljno trajanje — odmik ocene proti izbranemu cilju */}
+                      <div className="space-y-2">
+                        <TargetDurationRow
+                          value={targetSec}
+                          onChange={(sec) => {
+                            setTargetSec(sec);
+                            writeTargetSeconds(sec); // ista izbira tudi v studiu
+                          }}
+                        />
+                        <TargetDeltaLine
+                          actualSec={analysis.estimatedSeconds}
+                          targetSec={targetSec}
+                          sourceHint="Odmik izračunan proti OCENI trajanja (govor + premori)."
+                        />
+                      </div>
+
                       <ul className="space-y-2.5">
                         {analysis.checks.map((check) => (
                           <li key={check.id} className="flex gap-2.5">

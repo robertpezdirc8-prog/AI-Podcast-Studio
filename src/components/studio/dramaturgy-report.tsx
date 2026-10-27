@@ -12,11 +12,19 @@
  * Vsi izračuni so lokalni (regexi + štetje besed) — 0 AI modelov.
  */
 
+import { useCallback, useState } from 'react';
+
 import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
 
-import { formatDuration, type ScriptAnalysis } from '@/lib/script-analysis';
+import {
+  formatDuration,
+  readTargetSeconds,
+  writeTargetSeconds,
+  type ScriptAnalysis,
+} from '@/lib/script-analysis';
 import { hostColor } from '@/lib/podcast-types';
 import { cn } from '@/lib/utils';
+import { TargetDeltaLine, TargetDurationRow } from './target-duration';
 
 interface DramaturgyReportProps {
   analysis: ScriptAnalysis;
@@ -25,10 +33,17 @@ interface DramaturgyReportProps {
 }
 
 export function DramaturgyReport({ analysis, realSeconds }: DramaturgyReportProps) {
+  // Cilj se bere le ob MOUNTU taba (ta obstaja samo na odjemalcu) — brez SSR težav.
+  const [targetSec, setTargetSec] = useState<number | null>(() => readTargetSeconds());
   const hasRealDuration = typeof realSeconds === 'number' && realSeconds > 0;
   const durationSec = hasRealDuration ? (realSeconds as number) : analysis.estimatedSeconds;
   const totalLines = analysis.balance.reduce((sum, b) => sum + b.lines, 0);
   const totalWords = analysis.balance.reduce((sum, b) => sum + b.words, 0);
+
+  const handleTarget = useCallback((sec: number | null) => {
+    setTargetSec(sec);
+    writeTargetSeconds(sec); // ista izbira velja tudi v dialogu za novo epizodo
+  }, []);
 
   const stats: { label: string; value: string; hint?: string }[] = [
     {
@@ -53,6 +68,20 @@ export function DramaturgyReport({ analysis, realSeconds }: DramaturgyReportProp
 
   return (
     <div className="space-y-5">
+      {/* Ciljno trajanje (Task 47) — odmik proti realnemu/ocenjenemu trajanju */}
+      <div className="space-y-2">
+        <TargetDurationRow value={targetSec} onChange={handleTarget} />
+        <TargetDeltaLine
+          actualSec={durationSec}
+          targetSec={targetSec}
+          sourceHint={
+            hasRealDuration
+              ? 'Odmik izračunan proti REALNEMU trajanju iz avdia.'
+              : 'Odmik izračunan proti OCENI iz besed (zvok še ni sintetiziran).'
+          }
+        />
+      </div>
+
       {/* Statistični čipi */}
       <div className="flex flex-wrap gap-2">
         {stats.map((stat) => (
