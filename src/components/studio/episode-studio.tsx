@@ -61,11 +61,13 @@ import {
   generateCover,
   generateEpisodeAudio,
   generateLineAudio,
+  fetchEpisodePeaks,
   loadLocalPosition,
   saveLocalPosition,
   updateEpisodeProgress,
   updateLineText,
 } from '@/lib/podcast-client';
+import type { PeaksResponse } from '@/lib/podcast-client';
 import type { ShortsCaptionStyle } from '@/lib/podcast-ai';
 import {
   LANGUAGE_LABELS,
@@ -208,6 +210,8 @@ export function EpisodeStudio({
   const [lineErrors, setLineErrors] = useState<string[]>([]);
   const [retryingIds, setRetryingIds] = useState<string[]>([]);
   const [durations, setDurations] = useState<Record<string, number>>({});
+  /** Oblika valovanja (Task 42): per-line vrhovi (null = pade nazaj na drsnik). */
+  const [peaksData, setPeaksData] = useState<PeaksResponse | null>(null);
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [rate, setRate] = useState(1);
@@ -883,11 +887,78 @@ export function EpisodeStudio({
     [lines, durations],
   );
 
+  /*
+   * Stolpci oblike valovanja (Task 42): ENAKA matematika kot `elapsed` —
+   * vrstica zaseda [start, start+dur), pavza (preDelayMs) sledi zanjo kot
+   * nizki stolpci → glava predvajanja (elapsed/total) je Natančno poravnana.
+   * Dolge epizode se max-poolajo na ≤ 420 stolpcev.
+   */
+  const waveformBars = useMemo(() => {
+    if (!peaksData || peaksData.lines.length === 0) return null;
+    const byId = new Map(peaksData.lines.map((entry) => [entry.id, entry]));
+    const bars: number[] = [];
+    for (const line of lines) {
+      if (!line.audioPath) continue;
+      const entry = byId.get(line.id);
+      const dur = durations[line.id] ?? 0;
+      if (!entry || entry.peaks.length === 0 || dur <= 0) {
+        bars.push(0.05); // vrstica še brez vrhov → tiha oznaka
+        continue;
+      }
+      const src = entry.peaks;
+      const want = Math.max(2, Math.round((entry.durationSec || dur) * 2));
+      for (let i = 0; i < want; i += 1) {
+        const a = Math.floor((i / want) * src.length);
+        const b = Math.max(a + 1, Math.ceil(((i + 1) / want) * src.length));
+        let peak = 0;
+        for (let k = a; k < b && k < src.length; k += 1) peak = Math.max(peak, src[k]);
+        bars.push(Math.max(0.04, peak));
+      }
+      const gapSec = Math.max(0, (line.preDelayMs ?? 0) / 1000);
+      const gapBars = Math.round(gapSec * 2);
+      for (let g = 0; g < gapBars; g += 1) bars.push(0.045);
+    }
+    if (bars.length < 10) return null;
+    const MAX_BARS = 420;
+    if (bars.length <= MAX_BARS) return bars;
+    const pooled: number[] = [];
+    const factor = bars.length / MAX_BARS;
+    for (let i = 0; i < MAX_BARS; i += 1) {
+      const a = Math.floor(i * factor);
+      const b = Math.max(a + 1, Math.floor((i + 1) * factor));
+      let peak = 0;
+      for (let k = a; k < b && k < bars.length; k += 1) peak = Math.max(peak, bars[k]);
+      pooled.push(peak);
+    }
+    return pooled;
+  }, [peaksData, lines, durations]);
+
   // Ogrevanje predpomnilnika za jingle melodije (Task 30) — zagon brez latence
   useEffect(() => {
     prefetchAudio('/api/audio/jingle_intro.wav');
     prefetchAudio('/api/audio/jingle_outro.wav');
   }, [episode.id]);
+
+  /*
+   * OBFORMA VALOVANJA (Task 42): vrhovi po vrsticah. Ponovni pridobiv ob
+   * vsaki spremembi množice zvočnih datotek (generacija napreduje vrstica po
+   * vrstici / re-voice) — keš na strežniku je inkrementalen (samo nove vrstice
+   * računa). Ob napaki pade na drsnik (fail-soft).
+   */
+  const audioPathsKey = lines.map((line) => line.audioPath ?? '').join('|');
+  useEffect(() => {
+    let alive = true;
+    if (!audioPathsKey) {
+      setPeaksData(null);
+      return;
+    }
+    void fetchEpisodePeaks(episode.id).then((data) => {
+      if (alive) setPeaksData(data);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [episode.id, audioPathsKey]);
 
   // Nadaljuj od mesta ustavitve (localStorage, Apple/Spotify stil): tihi skok
   // na pravo vrstico + offset, BREZ avtomatskega predvajanja (razen eksplicitnega
@@ -1193,6 +1264,47 @@ export function EpisodeStudio({
       audio.currentTime = Math.max(0, target);
     },
     [playNextLine, cancelGap],
+  );
+
+  /*
+   * Skok na GLOBALNI čas (ms) — klik/vleci oblike valovanja (Task 42).
+   * Enaka segmentacija kot `elapsed` (dur + preDelay po vrstici).
+   * Isti mehanizem kot obnova pozicije: pendingSeekRef (vleci med predvajanjem
+   * = nadaljuj, med pavzo = ostani pavziran na novi poziciji).
+   */
+  const seekToGlobalMs = useCallback(
+    (ms: number) => {
+      const segments: { index: number; start: number; end: number }[] = [];
+      let acc = 0;
+      for (let i = 0; i < linesRef.current.length; i += 1) {
+        const line = linesRef.current[i];
+        if (!line.audioPath) continue;
+        const d = durationsRef.current[line.id] ?? 0;
+        if (d <= 0) continue;
+        segments.push({ index: i, start: acc, end: acc + d });
+        acc = acc + d + (line.preDelayMs ?? 0) / 1000;
+      }
+      if (segments.length === 0) return;
+      const target = Math.max(0, ms) / 1000;
+      const last = segments[segments.length - 1];
+      const seg = segments.find((s) => target < s.end) ?? last;
+      const offsetSec = Math.min(Math.max(0, target - seg.start), seg.end - seg.start);
+      cancelGap();
+      if (seg.index === currentIndexRef.current) {
+        const audio = audioRef.current;
+        if (!audio) return;
+        try {
+          audio.currentTime = offsetSec;
+        } catch {
+          return; // iskanje ni uspelo — nič hudega
+        }
+        setCurrentTime(offsetSec);
+      } else {
+        pendingSeekRef.current = { index: seg.index, offsetSec, play: playing };
+        setCurrentIndex(seg.index);
+      }
+    },
+    [cancelGap, playing],
   );
 
   const toggleMute = useCallback(() => {
@@ -2175,6 +2287,8 @@ export function EpisodeStudio({
         onSkip={skipSeconds}
         onRateChange={changeRate}
         onToggleMute={toggleMute}
+        waveform={waveformBars}
+        onSeekMs={seekToGlobalMs}
       />
 
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />

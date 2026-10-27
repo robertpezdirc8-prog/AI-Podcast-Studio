@@ -27,6 +27,7 @@ AI Podcast Studio je splet aplikacija, ki iz ene teme samostojno napiše dvogost
 
 ### 📺 Karaoke predvajalnik
 - **ON AIR** indikator, oznaka aktivne vrstice, poglavjski čipi, valovni obrazec
+- **Oblika valovanja (mini-map)** — pravi vrhovi zvoka (RMS iz WAV, keš), predvajani del jantarno, klik/vleci = skok na čas
 - **Besedni karaoke** — aktivna beseda sveti, klik na besedo skoči na njen čas (100 % lokalno, sorazmerna časovnica)
 - **Stereo pan debug** / premik med kanali
 - Iskanje po transkriptu do trenutka, skok ±5 s, 2× hitrost, nadaljuvanje (resume), sleep timer
@@ -135,6 +136,7 @@ scripts/                        # razvojna orodja (regen audio, tempo-audit, ...
 - [x] Shorts MP4 z vžganimi podnapisi (9:16, ASS/libass)
 - [x] 3 stili shorts podnapisov (klasika / TikTok okvir / rumeni poudarek)
 - [x] Profesionalne skriptne šablone (brez AI) + besedni karaoke s klikom na besedo
+- [x] Oblika valovanja v predvajalniku (RMS vrhovi, klik/vleci = skok)
 - [ ] Tretji gost-glas (ko Edge doda nova sl-SI glasova)
 - [ ] Javna delitvena stran epizode
 

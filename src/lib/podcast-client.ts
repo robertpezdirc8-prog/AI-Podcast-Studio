@@ -18,6 +18,33 @@ interface LineAudioResponse {
   durationMs: number;
 }
 
+/** Vrhnji podatki ene vrstice za obliko valovanja (Task 42). */
+export interface PeaksLine {
+  id: string;
+  durationSec: number;
+  preDelayMs: number;
+  /** RMS vrhovi 0..1 (2 stolpca/s). */
+  peaks: number[];
+}
+
+export interface PeaksResponse {
+  lines: PeaksLine[];
+}
+
+/**
+ * Oblika valovanja (Task 42): vrhovi po vrsticah. Ob napaki vrne `null` —
+ * predvajalnik takrat pade nazaj na navaden drsnik (fail-soft).
+ */
+export async function fetchEpisodePeaks(id: string): Promise<PeaksResponse | null> {
+  try {
+    const res = await fetch(`/api/episodes/${id}/peaks`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return (await res.json()) as PeaksResponse;
+  } catch {
+    return null;
+  }
+}
+
 /** Vir nove epizode: tema (privzeto), povezava do članka ali prilepljeno besedilo. */
 export interface CreateEpisodeInput {
   topic?: string;

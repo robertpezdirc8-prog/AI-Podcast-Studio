@@ -31,6 +31,7 @@ import {
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { Equalizer } from './equalizer';
+import { Waveform } from './waveform';
 
 const RATES = [0.75, 1, 1.25, 1.5, 2, 2.5, 3] as const;
 const SKIP_SECONDS = 10;
@@ -76,6 +77,13 @@ interface PlayerBarProps {
   onSkip: (seconds: number) => void;
   onRateChange: (rate: number) => void;
   onToggleMute: () => void;
+  /**
+   * Oblika valovanja (Task 42): stolpci vrhov 0..1 za mini-mapo. `null` =
+   * pade nazaj na navaden drsnik (podatki še ne znani / napaka).
+   */
+  waveform?: number[] | null;
+  /** Skok na globalni čas (ms) — klik/vleci obliki valovanja. */
+  onSeekMs?: (ms: number) => void;
 }
 
 /** Gumb za skok naprej/nazaj 10 s (podcast standard, stil Pocket Casts/Snipd). */
@@ -206,9 +214,12 @@ export function PlayerBar({
   onSkip,
   onRateChange,
   onToggleMute,
+  waveform = null,
+  onSeekMs,
 }: PlayerBarProps) {
   const max = total > 0 ? total : 100;
   const value = Math.min(elapsed, max);
+  const showWaveform = Boolean(waveform && waveform.length > 8 && onSeekMs && total > 0);
 
   return (
     <section
@@ -280,14 +291,24 @@ export function PlayerBar({
               )}
             </div>
             <div className="mt-1.5 flex items-center gap-3">
-              <Slider
-                value={[value]}
-                max={max}
-                step={0.1}
-                disabled={!hasAudio}
-                aria-label="Napredek predvajanja"
-                className="flex-1 cursor-default [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-amber-500 [&_[data-slot=slider-range]]:to-orange-600 [&_[data-slot=slider-thumb]]:border-amber-500 [&_[data-slot=slider-thumb]]:bg-zinc-950 [&_[data-slot=slider-track]]:bg-zinc-800"
-              />
+              {showWaveform ? (
+                /* Oblika valovanja (Task 42): mini-map z klikom/vlečenjem = skok. */
+                <Waveform
+                  bars={waveform as number[]}
+                  progress={max > 0 ? Math.min(1, Math.max(0, value / max)) : 0}
+                  onSeekFraction={(fraction) => onSeekMs?.(Math.round(fraction * total * 1000))}
+                  disabled={!hasAudio}
+                />
+              ) : (
+                <Slider
+                  value={[value]}
+                  max={max}
+                  step={0.1}
+                  disabled={!hasAudio}
+                  aria-label="Napredek predvajanja"
+                  className="flex-1 cursor-default [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-amber-500 [&_[data-slot=slider-range]]:to-orange-600 [&_[data-slot=slider-thumb]]:border-amber-500 [&_[data-slot=slider-thumb]]:bg-zinc-950 [&_[data-slot=slider-track]]:bg-zinc-800"
+                />
+              )}
               <span className="shrink-0 text-xs tabular-nums text-zinc-400">
                 {formatTime(elapsed)} / {formatTime(total)}
               </span>
