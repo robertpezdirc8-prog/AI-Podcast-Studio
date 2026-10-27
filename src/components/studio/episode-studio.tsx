@@ -18,10 +18,12 @@ import {
   ImagePlus,
   Keyboard,
   Link2,
+  ListChecks,
   ListOrdered,
   Loader2,
   Mic,
   Music,
+  NotebookText,
   Pencil,
   Quote,
   RefreshCw,
@@ -47,6 +49,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import {
   askHosts,
@@ -81,8 +84,10 @@ import {
 import { cn } from '@/lib/utils';
 import { activatePan, setElementPan } from '@/lib/audio-pan';
 import { panForSpeaker, speakerPanMapFor } from '@/lib/podcast-pan';
+import { analyzeScript } from '@/lib/script-analysis';
 import { AskHostsCard } from './ask-hosts-card';
 import { ChaptersRow, type ChapterChip } from './chapters-row';
+import { DramaturgyReport } from './dramaturgy-report';
 import { Equalizer } from './equalizer';
 import { PlayerBar, type SleepTimerChoice } from './player-bar';
 import { downloadQuoteCard } from './quote-card';
@@ -238,6 +243,11 @@ export function EpisodeStudio({
   const [searchActiveIdx, setSearchActiveIdx] = useState(0);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Trojni pogled studia (V4 iz analize UI): Scenarij / Zapiski / Dramaturgija
+  const [studioTab, setStudioTab] = useState<'scenarij' | 'zapiski' | 'dramaturgija'>(
+    'scenarij',
+  );
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const linesRef = useRef(lines);
@@ -870,6 +880,20 @@ export function EpisodeStudio({
     [lines, durations],
   );
 
+  // Dramaturška analiza epizode (isti pravili kot dialog za novo epizodo; 100 % lokalno).
+  const dramaAnalysis = useMemo(() => {
+    if (lines.length === 0) return null;
+    const speakers: string[] = [];
+    for (const line of lines) {
+      if (!speakers.includes(line.speaker)) speakers.push(line.speaker);
+    }
+    return analyzeScript({
+      lines: lines.map((l) => ({ speaker: l.speaker, text: l.text, chapter: l.chapter })),
+      speakers,
+      chapterCount: new Set(lines.map((l) => l.chapter).filter(Boolean)).size,
+    });
+  }, [lines]);
+
   const elapsed = useMemo(() => {
     if (currentIndex === null) return 0;
     let before = 0;
@@ -1138,6 +1162,21 @@ export function EpisodeStudio({
     setCurrentIndex(index);
   }, [cancelGap]);
 
+  /**
+   * Skok iz čipov poglavij (Task 44): preklopi na zavihek Scenarij (seznam je tam),
+   * predvaja vrstico in po remountu gladko prinese vrstico v vidno polje.
+   */
+  const jumpFromChapters = useCallback(
+    (index: number) => {
+      setStudioTab('scenarij');
+      jumpToLine(index);
+      window.setTimeout(() => {
+        rowRefs.current[index]?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }, 90);
+    },
+    [jumpToLine],
+  );
+
   /*
    * KLIK NA BESEDO (Task 41): skok znotraj AKTIVNE vrstice na njen čas.
    * Sprotno predvajanje se nadaljuje; če je pavza, začne igrati od besede
@@ -1220,6 +1259,7 @@ export function EpisodeStudio({
   }, [searchMatches]);
 
   const openSearch = useCallback(() => {
+    setStudioTab('scenarij'); // iskanje živi v zavihku Scenarij — prinesi ga v ospredje
     setSearchOpen(true);
     requestAnimationFrame(() => searchInputRef.current?.focus());
   }, []);
@@ -1844,13 +1884,10 @@ export function EpisodeStudio({
           </CardContent>
         </Card>
 
-        {/* Povzetek epizode (show notes) */}
-        {episode.summary && <ShowNotesPanel summary={episode.summary} />}
-
-        {/* Poglavja (čipi nad scenarijem) */}
+        {/* Poglavja (čipi — vedno vidni, skok deluje tudi iz drugih zavihkov) */}
         {chapters.length > 0 && (
           <div className="mt-4">
-            <ChaptersRow chapters={chapters} activeIndex={currentIndex} onJump={jumpToLine} />
+            <ChaptersRow chapters={chapters} activeIndex={currentIndex} onJump={jumpFromChapters} />
           </div>
         )}
 
@@ -1885,8 +1922,49 @@ export function EpisodeStudio({
           )}
         </AnimatePresence>
 
-        {/* Scenarij (karaoke seznam) */}
-        <section aria-label="Scenarij" className="mt-6">
+        {/* Trojni pogled (V4 iz analize UI) — Scenarij · Zapiski · Dramaturgija */}
+        <Tabs
+          value={studioTab}
+          onValueChange={(v) => setStudioTab(v as typeof studioTab)}
+          className="mt-6"
+        >
+          <TabsList
+            aria-label="Pogled studia"
+            className="h-auto w-full justify-start gap-1 rounded-xl border border-zinc-800 bg-zinc-950/60 p-1 sm:w-auto"
+          >
+            <TabsTrigger
+              value="scenarij"
+              className="min-h-11 gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 data-[state=active]:bg-zinc-800 data-[state=active]:text-amber-300 sm:min-h-9"
+            >
+              <AudioLines className="size-4" aria-hidden="true" />
+              Scenarij
+            </TabsTrigger>
+            <TabsTrigger
+              value="zapiski"
+              className="min-h-11 gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 data-[state=active]:bg-zinc-800 data-[state=active]:text-amber-300 sm:min-h-9"
+            >
+              <NotebookText className="size-4" aria-hidden="true" />
+              Zapiski
+            </TabsTrigger>
+            <TabsTrigger
+              value="dramaturgija"
+              className="min-h-11 gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 data-[state=active]:bg-zinc-800 data-[state=active]:text-amber-300 sm:min-h-9"
+            >
+              <ListChecks className="size-4" aria-hidden="true" />
+              Dramaturgija
+              {dramaAnalysis && dramaAnalysis.warnings > 0 && (
+                <span
+                  className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500/15 px-1 text-[10px] font-semibold text-amber-400"
+                  title={`${dramaAnalysis.warnings} dramaturških opozoril`}
+                >
+                  {dramaAnalysis.warnings}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="scenarij" className="mt-4">
+        <section aria-label="Scenarij">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
               Scenarij
@@ -2261,6 +2339,33 @@ export function EpisodeStudio({
           {/* Vprašaj voditelja (interaktivni način) */}
           <AskHostsCard onAsk={handleAskHosts} />
         </section>
+          </TabsContent>
+
+          <TabsContent value="zapiski" className="mt-4">
+            {episode.summary ? (
+              <ShowNotesPanel summary={episode.summary} />
+            ) : (
+              <p className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-6 text-sm leading-relaxed text-zinc-500">
+                Za to epizodo ni zapiskov. Povzetek, ključne točke in oznake nastanejo, ko
+                epizodo ustvariš iz teme ali vira (AI scenarij).
+              </p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="dramaturgija" className="mt-4">
+            {dramaAnalysis ? (
+              <Card className="border-zinc-800/80 bg-zinc-900/30">
+                <CardContent className="p-4 sm:p-6">
+                  <DramaturgyReport analysis={dramaAnalysis} realSeconds={totalDuration} />
+                </CardContent>
+              </Card>
+            ) : (
+              <p className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-6 text-sm leading-relaxed text-zinc-500">
+                Dramaturgija bo na voljo, ko epizoda dobi vrstice scenarija.
+              </p>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       <PlayerBar

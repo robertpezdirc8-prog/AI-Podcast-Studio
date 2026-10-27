@@ -16,6 +16,9 @@ AI Podcast Studio je splet aplikacija, ki iz ene teme samostojno napiše dvogost
 - **Derivirani glasovi** — Jakob in Matjaž kot Rok s pitch-shiftom ±2 poltona (prava slovenščina, drugačen ton)
 - **Lokalni zasilni TTS** — Piper (`sl_SI-artur-medium`, edini odprtokodni pravi slovenski studijski glas) če Edge ni dosegljiv
 
+### 🎛️ Studio (karaoke urejevalnik)
+- **Trojni pogled (tabi)** — Scenarij (karaoke + urejanje + iskanje) · Zapiski (show notes) · **Dramaturgija** (statistika epizode: realno trajanje, besede, poglavja, ravnovesje govorcev, 7 radijskih pregledov) — čipi poglavij in predvajalnik ostanejo vedno vidni
+
 ### 🎚️ Produkcija (miks)
 - **Pavze in dramaturgija** — členki po zarezi, poglavitne pavze, mikropavze
 - **Vdih** — naravni vdihi pred daljšimi mislimi
@@ -138,6 +141,7 @@ scripts/                        # razvojna orodja (regen audio, tempo-audit, ...
 - [x] 3 stili shorts podnapisov (klasika / TikTok okvir / rumeni poudarek)
 - [x] Profesionalne skriptne šablone (brez AI) + besedni karaoke s klikom na besedo
 - [x] Dramaturški pregled skripte (radijska pravila, ocena trajanja, ravnovesje) + 3 nove šablone
+- [x] Trojni pogled studia (Scenarij/Zapiski/Dramaturgija) + dramaturgija obstoječih epizod
 - [x] Oblika valovanja v predvajalniku (RMS vrhovi, klik/vleci = skok)
 - [ ] Tretji gost-glas (ko Edge doda nova sl-SI glasova)
 - [ ] Javna delitvena stran epizode

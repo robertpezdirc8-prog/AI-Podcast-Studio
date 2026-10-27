@@ -48,6 +48,14 @@ export interface ScriptAnalysis {
   checks: ScriptCheck[];
   warnings: number;
   infos: number;
+  /** število poglavij (naslovi ##) */
+  chapterCount: number;
+  /** število unikatnih govorcev */
+  speakerCount: number;
+  /** najdaljša vrstica (besede) — 0 če je skripta prazna */
+  longestLineWords: number;
+  /** povprečno besed na vrstico (1 decimala) */
+  avgWordsPerLine: number;
 }
 
 const WORDS_PER_SECOND = 2.5;
@@ -297,5 +305,9 @@ export function analyzeScript(parsed: ParsedScript): ScriptAnalysis {
     checks,
     warnings,
     infos,
+    chapterCount,
+    speakerCount: balance.length,
+    longestLineWords: longest?.words ?? 0,
+    avgWordsPerLine: lines.length > 0 ? Math.round((words / lines.length) * 10) / 10 : 0,
   };
 }
