@@ -191,6 +191,46 @@ export async function updateLineText(
 }
 
 /**
+ * Vstavi NOVO vrstico pod podano (`afterLineId`) ali na konec scenarija
+ * (`afterLineId: null`). Strežnik takoj sintetizira glas in vrne CELO epizodo
+ * (kontekstne pavze sosednjih vrstic so se spremenile). Traja 1–3 s (TTS).
+ */
+export async function addLine(
+  episodeId: string,
+  afterLineId: string | null,
+  speaker: string,
+  text: string,
+): Promise<{ episode: Episode; lineId: string; durationMs: number }> {
+  const res = await fetch(`/api/episodes/${encodeURIComponent(episodeId)}/lines`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ afterLineId, speaker, text }),
+  });
+  return parseResponse<{ episode: Episode; lineId: string; durationMs: number }>(res);
+}
+
+/** Izbriše vrstico (z zvokom); vrne svežo epizodo z novo reindeksacijo in pavzami. */
+export async function deleteLine(lineId: string): Promise<Episode | null> {
+  const res = await fetch(`/api/lines/${encodeURIComponent(lineId)}`, { method: 'DELETE' });
+  const data = await parseResponse<{ success: boolean; episode: Episode | null }>(res);
+  return data.episode;
+}
+
+/** Premakne vrstico za eno mesto gor/dol; vrne svežo epizodo (nove pavze). */
+export async function moveLine(
+  lineId: string,
+  direction: 'up' | 'down',
+): Promise<Episode | null> {
+  const res = await fetch(`/api/lines/${encodeURIComponent(lineId)}/move`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ direction }),
+  });
+  const data = await parseResponse<{ success: boolean; episode: Episode | null }>(res);
+  return data.episode;
+}
+
+/**
  * Interaktivni način: voditelja vstavita vprašanje v oddajo in odgovorita
  * (3–6 novih vrstic na koncu). Traja 15–60 s (LLM + TTS).
  */

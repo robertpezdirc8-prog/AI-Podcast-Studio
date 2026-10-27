@@ -1,8 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  ArrowDown,
+  ArrowUp,
   AudioLines,
   BookOpen,
   Captions,
@@ -13,6 +15,7 @@ import {
   ClipboardPaste,
   Copy,
   Download,
+  EllipsisVertical,
   FileText,
   Highlighter,
   ImagePlus,
@@ -25,11 +28,13 @@ import {
   Music,
   NotebookText,
   Pencil,
+  Plus,
   Quote,
   RefreshCw,
   RotateCcw,
   Search,
   Share2,
+  Trash2,
   TriangleAlert,
   X,
   type LucideIcon,
@@ -43,6 +48,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -52,7 +58,19 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   askHosts,
+  addLine,
+  deleteLine,
   downloadChapterClip,
   downloadChapterShort,
   downloadEpisodeChapters,
@@ -67,6 +85,7 @@ import {
   fetchEpisodePeaks,
   loadLocalPosition,
   saveLocalPosition,
+  moveLine,
   updateEpisodeProgress,
   updateLineText,
 } from '@/lib/podcast-client';
@@ -237,6 +256,15 @@ export function EpisodeStudio({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [savingLineId, setSavingLineId] = useState<string | null>(null);
+
+  // Upravljanje vrstic (Task 48): vstavljanje, premikanje, brisanje
+  const [insertAfter, setInsertAfter] = useState<{ lineId: string | null } | null>(null);
+  const [insertSpeaker, setInsertSpeaker] = useState('');
+  const [insertText, setInsertText] = useState('');
+  const [inserting, setInserting] = useState(false);
+  const [movingId, setMovingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ line: Line; index: number } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Iskanje po scenariju (Apple Podcasts transkript-search stil) + pomoč za bližnjice
   const [searchOpen, setSearchOpen] = useState(false);
@@ -817,9 +845,9 @@ export function EpisodeStudio({
     for (const line of lines) {
       if (!line.audioPath) continue;
       prefetchAudio(line.audioPath); // celoten zvok v predpomnilniku → takojšnji zagoni
-      if (line.preDelayMs >= 30) {
+      if ((line.preDelayMs ?? 0) >= 30) {
         // room-tone pavze, ki jih bo predvajalnik potreboval (distinct vrednosti)
-        prefetchAudio(`/api/audio/gap_${(line.preDelayMs / 1000).toFixed(2)}.wav`);
+        prefetchAudio(`/api/audio/gap_${((line.preDelayMs ?? 0) / 1000).toFixed(2)}.wav`);
       }
       if (triedDurationIdsRef.current.has(line.id)) continue;
       triedDurationIdsRef.current.add(line.id);
@@ -1708,6 +1736,207 @@ export function EpisodeStudio({
     [editText, savingLineId, cancelEdit],
   );
 
+  // — Upravljanje vrstic (Task 48): vstavljanje, premikanje, brisanje —
+
+  // Govorci na voljo za novo vrstico: voditelji + vsi govorci, ki se pojavijo v vrsticah.
+  const speakerOptions = useMemo(() => {
+    const names = episode.hosts.map((host) => host.name);
+    for (const line of lines) {
+      if (!names.includes(line.speaker)) names.push(line.speaker);
+    }
+    return names;
+  }, [episode.hosts, lines]);
+
+  /** Odpri kompozitor: pod vrstico `afterLineId` (ali na konec, če je null). */
+  const startInsert = useCallback((afterLineId: string | null, defaultSpeaker: string) => {
+    audioRef.current?.pause();
+    setEditingId(null);
+    setEditText('');
+    setInsertAfter({ lineId: afterLineId });
+    setInsertSpeaker(defaultSpeaker);
+    setInsertText('');
+  }, []);
+
+  const cancelInsert = useCallback(() => {
+    setInsertAfter(null);
+    setInsertText('');
+  }, []);
+
+  /** Shrani novo vrstico: API sintetizira glas, klient zamenja celoten seznam. */
+  const saveInsert = useCallback(async () => {
+    if (!insertAfter || inserting) return;
+    const text = insertText.trim();
+    if (!text) {
+      toast.error('Besedilo ne sme biti prazno.');
+      return;
+    }
+    setInserting(true);
+    try {
+      const data = await addLine(episode.id, insertAfter.lineId, insertSpeaker, text);
+      if (data.episode) setLines(data.episode.lines);
+      const at = data.episode?.lines.findIndex((l) => l.id === data.lineId) ?? -1;
+      if (data.durationMs > 0) {
+        setDurations((prev) => ({ ...prev, [data.lineId]: data.durationMs / 1000 }));
+      }
+      // Vstavljena vrstica PRED aktivno premakne aktivno mesto — prekini
+      // poudarjanje (predvajanje je že pavzirano; brez presenetljivih zagonov).
+      if (at >= 0) {
+        setCurrentIndex((cur) => (cur !== null && cur >= at ? null : cur));
+      }
+      toast.success('Vrstica dodana — glas sintetiziran.');
+      setInsertAfter(null);
+      setInsertText('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Vstavljanje vrstice ni uspelo.');
+    } finally {
+      setInserting(false);
+    }
+  }, [insertAfter, inserting, insertText, insertSpeaker, episode.id]);
+
+  /** Premakni vrstico gor/dol (zamenjava s sosedom); zvok se ne spreminja. */
+  const handleMoveLine = useCallback(
+    async (index: number, direction: 'up' | 'down') => {
+      const target = index + (direction === 'up' ? -1 : 1);
+      const current = linesRef.current;
+      if (target < 0 || target >= current.length) return;
+      const line = current[index];
+      audioRef.current?.pause();
+      setMovingId(line.id);
+      try {
+        const fresh = await moveLine(line.id, direction);
+        if (fresh) setLines(fresh.lines);
+        // Če je bil premik čez aktivno vrstico, poudarjanje pade (brez zagonov)
+        setCurrentIndex((cur) =>
+          cur !== null && (cur === index || cur === target) ? null : cur,
+        );
+        toast.success(direction === 'up' ? 'Vrstica premaknjena gor.' : 'Vrstica premaknjena dol.');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Premikanje vrstice ni uspelo.');
+      } finally {
+        setMovingId(null);
+      }
+    },
+    [],
+  );
+
+  /** Prvi klik na „Izbriši“ odpre potrditveni dialog (trajna sprememba). */
+  const confirmDeleteLine = useCallback(
+    (line: Line, index: number) => {
+      audioRef.current?.pause();
+      setDeleteTarget({ line, index });
+    },
+    [],
+  );
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget || deleting) return;
+    const { line, index } = deleteTarget;
+    setDeleting(true);
+    try {
+      const fresh = await deleteLine(line.id);
+      if (fresh) setLines(fresh.lines);
+      setDurations((prev) => {
+        const next = { ...prev };
+        delete next[line.id];
+        return next;
+      });
+      setLineErrors((prev) => prev.filter((id) => id !== line.id));
+      // Aktivna vrstica izbrisana ali premaknjena naprej → poudarjanje pade
+      setCurrentIndex((cur) => (cur !== null && cur >= index ? null : cur));
+      // Kompozitor pod izbrisano vrstico zapri (referenca ne obstaja več)
+      setInsertAfter((cur) => (cur?.lineId === line.id ? null : cur));
+      toast.success('Vrstica izbrisana.');
+      setDeleteTarget(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Brisanje vrstice ni uspelo.');
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleteTarget, deleting]);
+
+  /** Kompozitor vstavljanja (isti JSX pod vrstico in na koncu scenarija). */
+  const renderInsertComposer = () => (
+    <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 sm:p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[11px] font-semibold tracking-[0.18em] text-amber-300 uppercase">
+          Nova vrstica
+        </span>
+        <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Govorec nove vrstice">
+          {speakerOptions.map((name) => {
+            const chip = hostColor(hostIndexOf(name));
+            const selected = insertSpeaker === name;
+            return (
+              <button
+                key={name}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setInsertSpeaker(name)}
+                className={cn(
+                  'rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
+                  selected
+                    ? cn('border-transparent', chip.avatar)
+                    : 'border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200',
+                )}
+              >
+                {name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <Textarea
+        autoFocus
+        rows={2}
+        maxLength={900}
+        value={insertText}
+        onChange={(e) => setInsertText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            void saveInsert();
+          }
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelInsert();
+          }
+        }}
+        disabled={inserting}
+        aria-label="Besedilo nove vrstice"
+        placeholder="Besedilo nove vrstice …"
+        className="mt-2 min-h-16 resize-none border-zinc-700 bg-zinc-950/70 text-sm leading-relaxed text-zinc-100 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
+      />
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          className="h-7 gap-1 rounded-md bg-gradient-to-r from-amber-500 to-orange-600 px-2.5 text-xs font-semibold text-white hover:from-amber-400 hover:to-orange-500"
+          onClick={() => void saveInsert()}
+          disabled={inserting || insertText.trim().length === 0}
+        >
+          {inserting ? (
+            <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+          ) : (
+            <Plus className="size-3" aria-hidden="true" />
+          )}
+          Dodaj in sintetiziraj
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 gap-1 rounded-md px-2.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+          onClick={cancelInsert}
+          disabled={inserting}
+        >
+          <X className="size-3" aria-hidden="true" />
+          Prekliči
+        </Button>
+        <span className="text-xs text-zinc-600">
+          ⌘/Ctrl + Enter · {insertText.length}/900
+        </span>
+      </div>
+    </div>
+  );
+
+
   // Vprašaj voditelja: pavza → API → zamenjava vrstic → skok na prvi odgovor.
   const handleAskHosts = useCallback(
     async (question: string): Promise<string[]> => {
@@ -2035,8 +2264,8 @@ export function EpisodeStudio({
               const canEdit = Boolean(line.audioPath) && !hasError;
               const color = hostColor(hostIndexOf(line.speaker));
               return (
+                <Fragment key={line.id}>
                 <motion.li
-                  key={line.id}
                   layout="position"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -2152,6 +2381,84 @@ export function EpisodeStudio({
                       >
                         <Pencil className="size-3.5" aria-hidden="true" />
                       </Button>
+                    )}
+                    {!isEditing && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-zinc-500 opacity-100 transition-opacity hover:bg-amber-500/10 hover:text-amber-300 focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                        aria-label="Vstavi vrstico pod"
+                        title="Vstavi vrstico pod"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startInsert(line.id, line.speaker);
+                        }}
+                      >
+                        <Plus className="size-3.5" aria-hidden="true" />
+                      </Button>
+                    )}
+                    {!isEditing && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-zinc-500 opacity-100 transition-opacity hover:bg-zinc-800 hover:text-zinc-200 focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                            aria-label="Možnosti vrstice"
+                            aria-haspopup="menu"
+                            title="Možnosti vrstice"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <EllipsisVertical className="size-3.5" aria-hidden="true" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="w-60 border-zinc-800 bg-zinc-900 text-zinc-100"
+                          // REACT portali bubblajo sintetične dogodke po KOMPONENTNEM
+                          // drevesu — klik v meniju ne sme sprožiti playLine.
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <DropdownMenuItem
+                            disabled={index === 0 || movingId !== null}
+                            onSelect={(e) => e.preventDefault()} // meni ostane odprt → zaporedni premiki
+                            onClick={() => void handleMoveLine(index, 'up')}
+                            className="focus:bg-zinc-800 focus:text-amber-300"
+                          >
+                            {movingId === line.id ? (
+                              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                            ) : (
+                              <ArrowUp className="size-4" aria-hidden="true" />
+                            )}
+                            Premakni gor
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={index === lines.length - 1 || movingId !== null}
+                            onSelect={(e) => e.preventDefault()}
+                            onClick={() => void handleMoveLine(index, 'down')}
+                            className="focus:bg-zinc-800 focus:text-amber-300"
+                          >
+                            <ArrowDown className="size-4" aria-hidden="true" />
+                            Premakni dol
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => startInsert(line.id, line.speaker)}
+                            className="focus:bg-zinc-800 focus:text-amber-300"
+                          >
+                            <Plus className="size-4" aria-hidden="true" />
+                            Vstavi vrstico pod
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="bg-zinc-800" />
+                          <DropdownMenuItem
+                            disabled={deleting}
+                            onClick={() => confirmDeleteLine(line, index)}
+                            className="text-red-400 focus:bg-red-500/10 focus:text-red-300"
+                          >
+                            <Trash2 className="size-4" aria-hidden="true" />
+                            Izbriši vrstico …
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                     {Boolean(line.audioPath) && !isEditing && (
                       <DropdownMenu
@@ -2348,9 +2655,37 @@ export function EpisodeStudio({
                     )}
                   </div>
                 </motion.li>
+                {insertAfter?.lineId === line.id && (
+                  <li className="list-none" aria-label="Vstavljanje nove vrstice">
+                    {renderInsertComposer()}
+                  </li>
+                )}
+                </Fragment>
               );
             })}
           </ol>
+
+          {/* Kompozitor na koncu scenarija (vstavljanje na konec) */}
+          {insertAfter && insertAfter.lineId === null && (
+            <div className="mt-2">{renderInsertComposer()}</div>
+          )}
+
+          {/* Dodajanje vrstice na konec scenarija (skrito, kadar je kompozitor že odprt tam) */}
+          {insertAfter?.lineId !== null && (
+            <Button
+              variant="outline"
+              className="mt-3 w-full gap-2 rounded-xl border-dashed border-zinc-800 bg-transparent text-zinc-500 hover:border-amber-500/40 hover:bg-amber-500/5 hover:text-amber-300"
+              onClick={() =>
+                startInsert(
+                  null,
+                  lines[lines.length - 1]?.speaker ?? episode.hosts[0]?.name ?? 'Rok',
+                )
+              }
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              Dodaj vrstico na konec
+            </Button>
+          )}
 
           {/* Vprašaj voditelja (interaktivni način) */}
           <AskHostsCard onAsk={handleAskHosts} />
@@ -2419,6 +2754,48 @@ export function EpisodeStudio({
         open={shareOpen}
         onOpenChange={setShareOpen}
       />
+
+      {/* Potrditev brisanja vrstice (trajna sprememba — besedilo + zvok) */}
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent className="border-zinc-800 bg-zinc-900 text-zinc-100">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Izbriši vrstico?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400">
+              {deleteTarget
+                ? `„${deleteTarget.line.text.length > 120 ? `${deleteTarget.line.text.slice(0, 120)}…` : deleteTarget.line.text}" — ${deleteTarget.line.speaker}`
+                : ''}
+              <br />
+              Besedilo in sintetiziran zvok vrstice bosta TRAJNO izbrisana. Izvoz in
+              izrezki se ob naslednjem klicu znova izdelajo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting} className="border-zinc-700 hover:bg-zinc-800">
+              Prekliči
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault(); // dialog zapremo šele po uspehu
+                void handleConfirmDelete();
+              }}
+              className="bg-red-600 text-white hover:bg-red-500 focus-visible:ring-red-500/40"
+            >
+              {deleting ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Trash2 className="size-4" aria-hidden="true" />
+              )}
+              Izbriši
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

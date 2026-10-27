@@ -2849,6 +2849,32 @@ export function removeEpisodeLineClips(lineIds: string[]): void {
   for (const id of lineIds) removeLineClip(id)
 }
 
+/*
+ * Izbrši vse kešane IZREZKE POGRAVIJ epizode (rangemp3_<id>:<i>.mp3 in
+ * rangevideo_<id>:<i>.mp4). Ključ keša (<epizoda>:<index>) ne vsebuje vsebine
+ * vrstic, zato mora vsaka sprememba sestave poglavij (vstavitev, brisanje,
+ * premik, urejanje besedila) keš počistiti — sicer izrezek poglavja ostane
+ * star tudi, ko se epizoda spremeni.
+ */
+export function removeEpisodeRangeClips(episodeId: string): void {
+  try {
+    for (const file of fs.readdirSync(AUDIO_DIR)) {
+      if (
+        file.startsWith(`${RANGE_MP3_PREFIX}${episodeId}:`) ||
+        file.startsWith(`${RANGE_VIDEO_PREFIX}${episodeId}:`)
+      ) {
+        try {
+          fs.unlinkSync(path.join(AUDIO_DIR, file))
+        } catch {
+          // ignore — posamezna datoteka ne sme ustaviti čiščenja
+        }
+      }
+    }
+  } catch {
+    // ignore — map AUDIO_DIR morda še ne obstaja
+  }
+}
+
 /** Graf citatnega izrezka 9:16 (TikTok/Reels/Shorts): velik citat + govorec + val. */
 function quoteClipFilterGraph(args: {
   w: number
