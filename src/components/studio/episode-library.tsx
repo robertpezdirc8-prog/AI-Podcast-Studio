@@ -51,7 +51,8 @@ interface EpisodeLibraryProps {
 function formatDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('sl-SI', { day: 'numeric', month: 'short', year: 'numeric' });
+  // Kratek zapis brez leta (v kartici je prostor omejen; polni datum v title)
+  return date.toLocaleDateString('sl-SI', { day: 'numeric', month: 'short' });
 }
 /** Trajanje v m:ss ali h:mm:ss (iz milisekund). */
 function formatDuration(ms: number): string {
@@ -63,7 +64,7 @@ function formatDuration(ms: number): string {
   return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
 }
 
-/** Relativni čas v slovenščini: "pravkar", "pred 5 min", "pred 2 h", "pred 3 dni". */
+/** Relativni čas (KRATKI zapis za meta vrstico): "pravkar", "5 min", "2 h", "3 dni". */
 function formatRelative(value: string | null | undefined): string {
   if (!value) return '';
   const time = new Date(value).getTime();
@@ -71,11 +72,11 @@ function formatRelative(value: string | null | undefined): string {
   const diffSec = Math.max(0, Math.floor((Date.now() - time) / 1000));
   if (diffSec < 60) return 'pravkar';
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `pred ${diffMin} min`;
+  if (diffMin < 60) return `${diffMin} min`;
   const diffH = Math.floor(diffMin / 60);
-  if (diffH < 24) return diffH === 1 ? 'pred 1 h' : `pred ${diffH} h`;
+  if (diffH < 24) return `${diffH} h`;
   const diffD = Math.floor(diffH / 24);
-  return diffD === 1 ? 'pred 1 dnem' : `pred ${diffD} dni`;
+  return diffD === 1 ? '1 dnem' : `${diffD} dni`;
 }
 
 /** Slovenski množinski zapis: 1 epizoda, 2 epizodi, 3/4 epizode, 5+ epizod. */
@@ -142,7 +143,9 @@ function EpisodeCard({
         )}
         <div className="min-w-0 flex-1">
           <h3 className="line-clamp-2 font-semibold leading-snug text-zinc-100">{episode.title}</h3>
-          <p className="mt-1 line-clamp-2 text-sm text-zinc-400">{episode.topic}</p>
+          {episode.topic.trim() !== episode.title.trim() && (
+            <p className="mt-1 line-clamp-2 text-sm text-zinc-400">{episode.topic}</p>
+          )}
         </div>
       </div>
       <div className="mb-4 mt-3 flex flex-wrap items-center gap-1.5">
@@ -189,24 +192,44 @@ function EpisodeCard({
       >
         <div className="flex min-w-0 items-center gap-1.5 text-xs text-zinc-500">
           <ListMusic className="size-3.5 shrink-0" aria-hidden="true" />
-          <span className="truncate">
-            {episode.lineCount} {episode.lineCount === 1 ? 'vrstica' : 'vrstic'}
-            {episode.totalDurationMs > 0 && (
-              <>
-                {' · '}
-                <Clock className="mb-0.5 inline size-3" aria-hidden="true" />{' '}
-                {formatDuration(episode.totalDurationMs)}
-              </>
-            )}
-            {formatDate(episode.createdAt) && <> · {formatDate(episode.createdAt)}</>}
-            {playCount > 0 && (
-              <>
-                {' · '}
-                <Play className="mb-0.5 inline size-3" aria-hidden="true" /> {playCount}×
-              </>
-            )}
-            {lastPlayedLabel && <> · {lastPlayedLabel}</>}
-          </span>
+          {(() => {
+            // Meta vrstica ostane KRATKA: ko obstaja zgodovina predvajanja,
+            // datum nastanka pade v namig (polni datum + nazadnje predvajano).
+            const createdFull = new Date(episode.createdAt).toLocaleDateString('sl-SI', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            });
+            const hasHistory = playCount > 0 || Boolean(lastPlayedLabel);
+            const hint = [
+              createdFull && `Ustvarjeno ${createdFull}`,
+              playCount > 0 && `predvajano ${playCount}×`,
+              lastPlayedLabel &&
+                `nazadnje predvajano ${lastPlayedLabel === 'pravkar' ? 'pravkar' : `pred ${lastPlayedLabel}`}`,
+            ]
+              .filter(Boolean)
+              .join(' · ');
+            return (
+              <span className="truncate" title={hint || undefined}>
+                {episode.lineCount} {episode.lineCount === 1 ? 'vrstica' : 'vrstic'}
+                {episode.totalDurationMs > 0 && (
+                  <>
+                    {' · '}
+                    <Clock className="mb-0.5 inline size-3" aria-hidden="true" />{' '}
+                    {formatDuration(episode.totalDurationMs)}
+                  </>
+                )}
+                {!hasHistory && formatDate(episode.createdAt) && <> · {formatDate(episode.createdAt)}</>}
+                {lastPlayedLabel && (
+                  <>
+                    {' · '}
+                    <Play className="mb-0.5 inline size-3" aria-hidden="true" />{' '}
+                    {playCount >= 2 ? `${playCount}× · ${lastPlayedLabel}` : lastPlayedLabel}
+                  </>
+                )}
+              </span>
+            );
+          })()}
           {showProgress && (
             <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
               Nadaljuj {formatDuration(progressMs)}

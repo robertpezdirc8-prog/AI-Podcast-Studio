@@ -196,9 +196,11 @@ export function ShareView({ token, onExit }: ShareViewProps) {
         <h1 className="mt-5 text-2xl font-bold tracking-tight text-zinc-50 sm:text-3xl">
           {data.title}
         </h1>
-        <p className="mt-2 line-clamp-3 max-w-xl text-sm leading-relaxed text-zinc-400">
-          {data.topic}
-        </p>
+        {data.topic.trim() !== data.title.trim() && (
+          <p className="mt-2 line-clamp-3 max-w-xl text-sm leading-relaxed text-zinc-400">
+            {data.topic}
+          </p>
+        )}
         <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
           <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-400">
             <Radio className="size-3" aria-hidden="true" />
@@ -422,7 +424,7 @@ export function ShareView({ token, onExit }: ShareViewProps) {
             </span>
           </button>
           {transcriptOpen && (
-            <div className="mt-2.5 max-h-96 space-y-2.5 overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 [scrollbar-color:theme(colors.zinc.700)_transparent] [scrollbar-width:thin]">
+            <div className="podcast-scroll mt-2.5 max-h-96 space-y-2.5 overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
               {data.lines.map((line, i) => {
                 const spIdx = speakerIndex.get(line.speaker) ?? 0;
                 const color = hostColor(spIdx);

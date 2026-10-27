@@ -3536,6 +3536,11 @@ export function computeExportTimeline(
     prevDurMs = dur
     itemIndex += 1
   }
+  if (itemIndex > 0) {
+    // Zaključna melodija (ISTA kot izvod): 0,1 s vrtenja + 3 s outro —
+    // brez tega bi značka trajanja na delitveni strani zaostala za zvokom.
+    cursor += GAP_TURN_SECONDS * 1000 + JINGLE_OUTRO_MS
+  }
   return { markers, totalMs: Math.max(0, Math.round(cursor)) }
 }
 

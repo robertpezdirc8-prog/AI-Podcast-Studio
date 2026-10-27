@@ -180,6 +180,10 @@ export function ShareDialog({ episodeId, episodeTitle, open, onOpenChange }: Sha
                     </Badge>
                   )}
                 </div>
+                <p className="text-[11px] leading-relaxed text-zinc-600">
+                  Prvi zagon predvajanja pripravi skupni MP3 (traja nekaj sekund), nato se
+                  založi na disku.
+                </p>
               </div>
             )}
 

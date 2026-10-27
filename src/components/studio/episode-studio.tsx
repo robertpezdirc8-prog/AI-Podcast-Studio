@@ -1746,7 +1746,9 @@ export function EpisodeStudio({
                 <h2 className="line-clamp-2 text-xl font-bold tracking-tight text-zinc-100 sm:text-2xl">
                   {episode.title}
                 </h2>
-                <p className="mt-1 line-clamp-2 text-sm text-zinc-400">{episode.topic}</p>
+                {episode.topic.trim() !== episode.title.trim() && (
+                  <p className="mt-1 line-clamp-2 text-sm text-zinc-400">{episode.topic}</p>
+                )}
               </div>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
