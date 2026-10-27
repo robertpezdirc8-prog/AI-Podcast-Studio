@@ -85,6 +85,7 @@ import { Equalizer } from './equalizer';
 import { PlayerBar, type SleepTimerChoice } from './player-bar';
 import { downloadQuoteCard } from './quote-card';
 import { dimIfNoMatch, foldText, HighlightedText, ScenarioSearchBar } from './scenario-search';
+import { WordKaraoke } from './word-karaoke';
 import { ShowNotesPanel } from './show-notes-panel';
 import { ShortcutsDialog } from './shortcuts-dialog';
 
@@ -1066,6 +1067,23 @@ export function EpisodeStudio({
     setCurrentIndex(index);
   }, [cancelGap]);
 
+  /*
+   * KLIK NA BESEDO (Task 41): skok znotraj AKTIVNE vrstice na njen čas.
+   * Sprotno predvajanje se nadaljuje; če je pavza, začne igrati od besede
+   * (isti občutek kot klik na vrstico, samo finejši — na raven besede).
+   */
+  const seekWithinLine = useCallback((offsetSec: number) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    try {
+      audio.currentTime = offsetSec;
+    } catch {
+      return; // iskanje ni uspelo — nič hudega
+    }
+    setCurrentTime(offsetSec);
+    if (audio.paused) void audio.play().catch(() => {});
+  }, []);
+
   const playNextLine = useCallback(() => {
     const current = currentIndexRef.current;
     const start = current === null ? 0 : current + 1;
@@ -1900,6 +1918,14 @@ export function EpisodeStudio({
                       <p className="mt-1 text-sm leading-relaxed text-zinc-300">
                         {searchActive ? (
                           <HighlightedText text={line.text} query={searchQuery} />
+                        ) : isActive && (durations[line.id] ?? 0) > 0 ? (
+                          /* Besedni karaoke (Task 41): samo AKTIVNA vrstica z znano dolžino. */
+                          <WordKaraoke
+                            text={line.text}
+                            elapsedSec={currentTime}
+                            durationSec={durations[line.id] ?? 0}
+                            onWordClick={seekWithinLine}
+                          />
                         ) : (
                           line.text
                         )}

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  BookOpen,
   ChevronDown,
   ClipboardPaste,
   Clock,
@@ -22,6 +23,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -41,6 +50,7 @@ import {
 import { activatePan, setElementPan } from '@/lib/audio-pan';
 import { panForVoice } from '@/lib/podcast-pan';
 import { parseScript, SCRIPT_LIMITS } from '@/lib/script-parser';
+import { SCRIPT_TEMPLATES, type ScriptTemplate } from '@/lib/script-templates';
 import {
   EPISODE_LENGTHS,
   STYLE_OPTIONS,
@@ -185,6 +195,13 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
     } finally {
       setPreviewLoading(null);
     }
+  };
+
+  /** Vstavi profesionalno šablono (Task 40): besedilo + naslov, če je prazen. */
+  const applyTemplate = (template: ScriptTemplate) => {
+    setScriptText(template.script);
+    if (!scriptTitle.trim()) setScriptTitle(template.title);
+    toast.success(`Šablona vstavljena: ${template.name}`);
   };
 
   const handleScriptSubmit = async () => {
@@ -363,15 +380,35 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                   <Label htmlFor="script-text" className="text-zinc-300">
                     Skripta
                   </Label>
-                  <button
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => setScriptText(SAMPLE_SCRIPT)}
-                    className="rounded-full border border-zinc-800 bg-zinc-900/60 px-2.5 py-1 text-xs text-zinc-400 transition-colors hover:border-amber-500/50 hover:text-amber-300 disabled:pointer-events-none disabled:opacity-50"
-                  >
-                    <ClipboardPaste className="mr-1 inline size-3" aria-hidden="true" />
-                    Vstavi primer
-                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        className="rounded-full border border-zinc-800 bg-zinc-900/60 px-2.5 py-1 text-xs text-zinc-400 transition-colors hover:border-amber-500/50 hover:text-amber-300 disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        <BookOpen className="mr-1 inline size-3" aria-hidden="true" />
+                        Profesionalne šablone
+                        <ChevronDown className="ml-0.5 inline size-3" aria-hidden="true" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-80">
+                      <DropdownMenuLabel>Celotne skripte — brez AI</DropdownMenuLabel>
+                      {SCRIPT_TEMPLATES.map((template) => (
+                        <DropdownMenuItem key={template.id} onSelect={() => applyTemplate(template)}>
+                          <span className="flex min-w-0 flex-col gap-0.5 py-0.5">
+                            <span className="text-sm font-medium text-zinc-100">{template.name}</span>
+                            <span className="truncate text-xs text-zinc-500">{template.desc}</span>
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onSelect={() => setScriptText(SAMPLE_SCRIPT)}>
+                        <ClipboardPaste className="mr-2 inline size-3.5" aria-hidden="true" />
+                        Preprost primer (ananas)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <Textarea
                   id="script-text"
