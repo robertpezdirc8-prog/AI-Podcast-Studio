@@ -1,14 +1,18 @@
 /**
- * Profesionalne skriptne šablone (Task 40) — 100 % brez AI modelov.
+ * Profesionalne skriptne šablone (Task 40 + Task 43) — 100 % brez AI modelov.
  *
- * Štiri celotne radijske skripte s poklicno dramaturgijo (privzeti govorci
+ * Sedem celotnih radijskih skript s poklicno dramaturgijo (privzeti govorci
  * Rok + Petra = privzeti glasovni cikel rok/petra):
  *  1. NOVIČARSKA ODDAJA — vodniki → trije sklopi → zaključek (news desk)
  *  2. INTERVJU — gost v studiu: uvod → sklopi → hitra vprašanja → CTA
  *  3. RAZISKOVALNA ZGODBA — dokumentarni tok: kavelj → sledi → preobrat
  *  4. KULTURNI POGOVOR — lahkoten dialog z argumenti in zaključkom
+ *  5. DEBATA — teza/proteza: pravila → argumenti → odgovori → zadnji stavki
+ *  6. TOP 5 SEZNAM — odštevanje od 5 do 1 s presenečenjem na koncu
+ *  7. IZOBRAŽEVALNA RAZLAGA — problem → kako deluje → kaj to pomeni za vas
  *
- * Dramaturška pravila, upoštevana v vsaki šabloni:
+ * Dramaturška pravila, upoštevana v vsaki šabloni (jih preverja tudi
+ * dramaturški pregled v script-analysis.ts):
  *  - prva vrstica = kavelj (hook), druga = vodniki (agenda)
  *  - poglavja z naslovi (`##`) → ID3 žigi, glasbena podlaga, shorts
  *  - prehodi med poglavji z napovedjo (cliffhanger), ne z »hm, kaj pa zdaj«
@@ -150,5 +154,73 @@ Petra: Torej: obsojanje ni potrebno. Polica deluje.
 Rok: Nasvet za konec: izberite eno knjigo s police, odprite na strani triindvajset in berite pet minut. Samo toliko.
 Petra: Pet minut je vse, kar je potrebno. Ostalo se začne samo.
 Rok: Če vas je ta oddaja prepričala, da ena knjiga vrneš v življenje — nam pustite oceno in nas delite z bralcem, ki ga poznate. Se beremo!`,
+  },
+  {
+    id: 'debata',
+    name: 'Debata',
+    desc: 'teza/proteza · argumenti · odgovori',
+    title: 'Debata: naj javni prevoz postane brezplačen?',
+    script: `Rok: Vprašanje današnje debate: naj javni avtobusi v mestu postane brezplačni? Petra zagovarja da, jaz sem proti — na koncu odločite vi.
+Petra: Pravila so preprosta: trije argumenti na stran, po vrsti, nato odgovori druga stran, na koncu po en stavek za vsakega.
+
+## Argumenti za
+Petra: Prvi argument: brezplačen prevoz ni darilo, ampak infrastruktura. Cesto, ki jo urejamo iz davkov, nihče ne bi poceni prodajal voznikom.
+Petra: Drugi: vsak euro v prevoz vrne tri — manj zamašenih cest, manj onesnaženja, hitrejše dostave. To ni ideologija, to je račun.
+Petra: Tretji: cena vozovnice odganja ravno tiste, ki jih prevoz najbolj potrebuje — starejše, študente, male plače.
+Rok: Trije argumenti, vsi iz istega peresa — zdaj pa druga stran.
+
+## Argumenti proti
+Rok: Brezplačno ne obstaja. Ko z vozovnic izgubimo milijone, jih pokrijeta davki in kultura — denar ni izginil, spremenil je naslovnika.
+Rok: Drugi argument: brezplačne avtobuse bodo uporabili tudi tisti, ki bi plačali — denar odide od vzdrževanja, kjer je najbolj potreben.
+Rok: Tretji: če je prevoz brezplačen, kdo odgovarja, da bo še kvaliteten? Cena je tudi ocena vrednosti storitve.
+Petra: In moj odgovor na vse: Tallinn in Luksemburg sta to že dokazala — številke obstajajo, samo prebrati jih je potrebno.
+
+## Zaključek
+Rok: Moj zadnji stavek: prevoz plačajmo transparentno — z vozovnico, ki jo vidi potnik, ne z davkom, ki ga ne.
+Petra: Moj: mesto, ki svoje prebivalce ovira pri gibanju, plačuje svoj račun — samo v drugi valuti.
+Rok: Koga prepričava? Glasujte v sporočilih in nam povejte, kateri argument je bil odločilen — naslednjo debato pripraviva na vašo temo.`,
+  },
+  {
+    id: 'top5',
+    name: 'Top 5 seznam',
+    desc: 'odštevanje 5→1 · presenečenje · CTA',
+    title: 'Pet izumov, ki so jih razglasili za brezvredne',
+    script: `Rok: Pet izumov, ki so jih razglasili za brezvredne — in vsak je spremenil svet. Štejemo navzdol, od petega do prvega.
+Petra: Zgodba je poučna v obeh smerih: sodbe se obrestujejo, tudi napačne. Začniva.
+
+## Od petega do tretjega
+Rok: Peto mesto: telefonski odzivnik. Izumitelj ga je ponudil telekomunam, ki so rekle, da nihče ne bo poslušal sporočil stroja. Danes jih posluša cel planet.
+Petra: Četrto: elektronska knjiga. Založniki so jo deset let držali kot uro napake, potem je prišel čitač z zaslonom in knjiga je začela živeti v žepu.
+Rok: Tretje: Bluetooth. Industrija ga je označila za brezvezno igračo in zavrnila licenco. Danes vodi po vseh domovih.
+
+## Od drugega do prvega
+Petra: Drugo: e-pošta na telefonu. Analitiki so trdili, da nihče ne bo tipkal na napravi, ki se tiče v žepu. Pol stoletja kasneje je to standard.
+Rok: In prvo mesto: GPS. Obrambni krogi so ga zavračali kot zaprto vojaško orodje, saj naj bi civilna uporaba onesnažila signale. Danes se po njem vozi taksist, kmet in vaš poštar.
+
+## Zaključek
+Petra: Skupna točka vseh petih: sodba je bila hitra, a napačna — sodeč po prvi uporabi, ne po vrednosti izuma.
+Rok: Naslednjič, ko slišite, da je nekaj brezvredno — spomnite se te petorice. Če poznate izum, ki so ga odložili v predal, nam pišite — petorko naslednjič sestaviva iz vaših predlogov.`,
+  },
+  {
+    id: 'razlaga',
+    name: 'Izobraževalna razlaga',
+    desc: 'problem · kako deluje · za vas',
+    title: 'Kako deluje dvostopenjska cena elektrike',
+    script: `Petra: Vaš račun za elektriko je dvignjen, cena pa ne: kriv je dvostopenjski tečaj. V šestih minutah razloživa, kako deluje — in kje lahko prihranite.
+Rok: Nič formul brez razlage, obljubljeno. Trije deli, po vrsti: problem, stroj, vaša kuhinja.
+
+## Problem
+Petra: Večina ljudi gleda le končno ceno kilovatne ure. A račun ni samo cena — je cena krat čas porabe.
+Rok: Če vaša pralnica teče ob večernem vrhu, plačujete povsem drug izdelek kot sosed z enako količino elektrike.
+
+## Kako deluje
+Rok: Dvostopenjski tečaj pomeni enostavno stvar: dan ima poceni in drago okno. Osnovni tečaj velja čez dan, vrh pa zjutraj in zvečer, ko vsi hkrati prižgemo.
+Petra: Omrežje mora uravnovesiti proizvodnjo in porabo v vsakem trenutku — vrhovi so najdražja ura proizvodnje, zato najdražje plačate tudi vi.
+Rok: In najbolj zanimivo: vrh ni neizmeren, je napovedljiv. Vsak delovni dan med sedmimi in devetimi zvečer — to ni statistika, to je urnik.
+
+## Kaj to pomeni za vas
+Petra: Praktično: pomik pralnega stroja na noč je najcenejši premik, ki ga lahko naredite. Brez naložbe, samo z urnikom.
+Rok: Kotel, polnilec avta in pomivalni stroj skupaj pomenijo tretjino računa — in vse tri lahko poganjate ob poceni oknu.
+Petra: Če želite sami izračunati svoj premik, nam pišite — pripraviva podaljšek o pametnih vtičnicah, ki urnik poganjajo same.`,
   },
 ];

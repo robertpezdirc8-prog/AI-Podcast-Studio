@@ -4,14 +4,18 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookOpen,
   ChevronDown,
+  CircleCheck,
   ClipboardPaste,
   Clock,
   FileText,
+  Info,
   Link2,
+  ListChecks,
   Loader2,
   PenLine,
   Play,
   Sparkles,
+  TriangleAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -50,6 +54,7 @@ import {
 import { activatePan, setElementPan } from '@/lib/audio-pan';
 import { panForVoice } from '@/lib/podcast-pan';
 import { parseScript, SCRIPT_LIMITS } from '@/lib/script-parser';
+import { analyzeScript, formatDuration } from '@/lib/script-analysis';
 import { SCRIPT_TEMPLATES, type ScriptTemplate } from '@/lib/script-templates';
 import {
   EPISODE_LENGTHS,
@@ -125,6 +130,8 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
   const [scriptText, setScriptText] = useState('');
   const [scriptVoices, setScriptVoices] = useState<Record<string, VoiceId>>({});
   const parsed = useMemo(() => parseScript(scriptText), [scriptText]);
+  const analysis = useMemo(() => analyzeScript(parsed), [parsed]);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
   const scriptValid =
     scriptText.trim().length >= SCRIPT_LIMITS.minChars &&
     parsed.lines.length >= SCRIPT_LIMITS.minLines;
@@ -469,6 +476,139 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                     <span className="text-xs text-zinc-500">
                       (potrebna sta vsaj 2 vrstici „Ime: besedilo“)
                     </span>
+                  )}
+                  {analysis.words > 0 && (
+                    <>
+                      <span className="text-zinc-600">·</span>
+                      <span
+                        className="flex items-center gap-1 text-zinc-400"
+                        title="ocena trajanja: govor + premori"
+                      >
+                        <Clock className="size-3.5" aria-hidden="true" />
+                        ≈ {formatDuration(analysis.estimatedSeconds)}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Dramaturški pregled — deterministična radijska pravila, brez AI */}
+              {scriptText.trim().length > 0 && analysis.checks.length > 0 && (
+                <div className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/40">
+                  <button
+                    type="button"
+                    onClick={() => setAnalysisOpen((o) => !o)}
+                    aria-expanded={analysisOpen}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors hover:bg-zinc-900/80"
+                  >
+                    <ListChecks className="size-4 shrink-0 text-zinc-500" aria-hidden="true" />
+                    <span className="font-medium text-zinc-300">Dramaturški pregled</span>
+                    {analysis.warnings > 0 ? (
+                      <span
+                        className={cn(
+                          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs',
+                          'bg-amber-500/10 text-amber-400',
+                        )}
+                      >
+                        <TriangleAlert className="size-3" aria-hidden="true" />
+                        {analysis.warnings}{' '}
+                        {analysis.warnings === 1
+                          ? 'opozorilo'
+                          : analysis.warnings === 2
+                            ? 'opozorili'
+                            : 'opozorila'}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-400">
+                        <CircleCheck className="size-3" aria-hidden="true" />
+                        uredu
+                      </span>
+                    )}
+                    <ChevronDown
+                      className={cn(
+                        'ml-auto size-4 shrink-0 text-zinc-500 transition-transform',
+                        analysisOpen && 'rotate-180',
+                      )}
+                      aria-hidden="true"
+                    />
+                  </button>
+                  {analysisOpen && (
+                    <div className="space-y-3.5 border-t border-zinc-800 px-3 py-3">
+                      <ul className="space-y-2.5">
+                        {analysis.checks.map((check) => (
+                          <li key={check.id} className="flex gap-2.5">
+                            {check.state === 'ok' ? (
+                              <CircleCheck
+                                className="mt-0.5 size-4 shrink-0 text-emerald-500"
+                                aria-hidden="true"
+                              />
+                            ) : check.state === 'warn' ? (
+                              <TriangleAlert
+                                className="mt-0.5 size-4 shrink-0 text-amber-500"
+                                aria-hidden="true"
+                              />
+                            ) : (
+                              <Info
+                                className="mt-0.5 size-4 shrink-0 text-zinc-500"
+                                aria-hidden="true"
+                              />
+                            )}
+                            <div className="min-w-0">
+                              <p
+                                className={cn(
+                                  'text-sm font-medium',
+                                  check.state === 'ok'
+                                    ? 'text-emerald-400'
+                                    : check.state === 'warn'
+                                      ? 'text-amber-400'
+                                      : 'text-zinc-300',
+                                )}
+                              >
+                                {check.title}
+                              </p>
+                              <p className="text-xs leading-relaxed text-zinc-500">
+                                {check.detail}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                      {analysis.balance.length >= 2 && (
+                        <div className="space-y-1.5 border-t border-zinc-800/80 pt-3">
+                          <p className="text-xs font-medium text-zinc-400">
+                            Ravnovesje vrstic
+                          </p>
+                          {analysis.balance.map((b, i) => (
+                            <div key={b.speaker} className="flex items-center gap-2">
+                              <span
+                                className={cn('size-2 shrink-0 rounded-full', hostColor(i).dot)}
+                                aria-hidden="true"
+                              />
+                              <span className="w-20 shrink-0 truncate text-xs text-zinc-300">
+                                {b.speaker}
+                              </span>
+                              <div
+                                className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-800"
+                                role="img"
+                                aria-label={`${b.speaker}: ${Math.round(b.share * 100)} % vrstic`}
+                              >
+                                <div
+                                  className={cn('h-full rounded-full', hostColor(i).dot)}
+                                  style={{ width: `${Math.round(b.share * 100)}%` }}
+                                />
+                              </div>
+                              <span className="w-9 shrink-0 text-right text-xs tabular-nums text-zinc-500">
+                                {Math.round(b.share * 100)} %
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <p className="border-t border-zinc-800/80 pt-2.5 text-[11px] leading-relaxed text-zinc-600">
+                        Pravila so izpeljana iz poklicne radijske dramaturgije — pregled teče
+                        lokalno, brez AI modelov.
+                      </p>
+                    </div>
                   )}
                 </div>
               )}

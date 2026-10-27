@@ -10,7 +10,8 @@ AI Podcast Studio je splet aplikacija, ki iz ene teme samostojno napiše dvogost
 
 ### 🧠 Generiranje
 - **Dvogostiteljski skript** (LLM) — dramaturgija, poglavja, show notes, naravna izmenjava vprašanj in odgovorov
-- **Lastna skripta brez AI** — lokalni razčlenjevalnik + **4 profesionalne šablone** (novičarska oddaja, intervju, raziskovalna zgodba, kulturni pogovor) s poklicno radijsko dramaturgijo
+- **Lastna skripta brez AI** — lokalni razčlenjevalnik + **7 profesionalnih šablon** (novičarska oddaja, intervju, raziskovalna zgodba, kulturni pogovor, debata, top 5 seznam, izobraževalna razlaga) s poklicno radijsko dramaturgijo
+- **Dramaturški pregled** — živa analiza skripte po radijskih pravilih (kavelj, vodniki, poglavja, monologi, ravnovesje govorcev, CTA zaključek) + ocena trajanja — vsi izračuni lokalni, brez AI
 - **Nevronski glasovi Edge TTS** — `sl-SI-RokNeural` (moški) in `sl-SI-PetraNeural` (ženska), brezplačno, brez API ključa
 - **Derivirani glasovi** — Jakob in Matjaž kot Rok s pitch-shiftom ±2 poltona (prava slovenščina, drugačen ton)
 - **Lokalni zasilni TTS** — Piper (`sl_SI-artur-medium`, edini odprtokodni pravi slovenski studijski glas) če Edge ni dosegljiv
@@ -136,6 +137,7 @@ scripts/                        # razvojna orodja (regen audio, tempo-audit, ...
 - [x] Shorts MP4 z vžganimi podnapisi (9:16, ASS/libass)
 - [x] 3 stili shorts podnapisov (klasika / TikTok okvir / rumeni poudarek)
 - [x] Profesionalne skriptne šablone (brez AI) + besedni karaoke s klikom na besedo
+- [x] Dramaturški pregled skripte (radijska pravila, ocena trajanja, ravnovesje) + 3 nove šablone
 - [x] Oblika valovanja v predvajalniku (RMS vrhovi, klik/vleci = skok)
 - [ ] Tretji gost-glas (ko Edge doda nova sl-SI glasova)
 - [ ] Javna delitvena stran epizode
