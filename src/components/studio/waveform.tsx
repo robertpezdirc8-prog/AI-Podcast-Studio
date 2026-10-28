@@ -22,6 +22,11 @@ interface WaveformProps {
   progress: number;
   /** Klik/vleci: frakcija 0..1 → caller pretvori v ms. */
   onSeekFraction: (fraction: number) => void;
+  /**
+   * Začetek/konec VLEČENJA (Task 54): klicatelj med vlečenjem prekine
+   * prevzemanje položaja iz `timeupdate`, sicer glava poskakuje.
+   */
+  onScrubChange?: (active: boolean) => void;
   disabled?: boolean;
   className?: string;
 }
@@ -43,6 +48,7 @@ export const Waveform = memo(function Waveform({
   bars,
   progress,
   onSeekFraction,
+  onScrubChange,
   disabled = false,
   className,
 }: WaveformProps) {
@@ -85,6 +91,7 @@ export const Waveform = memo(function Waveform({
       onPointerDown={(e) => {
         if (disabled) return;
         draggingRef.current = true;
+        onScrubChange?.(true);
         try {
           e.currentTarget.setPointerCapture(e.pointerId);
         } catch {
@@ -98,6 +105,7 @@ export const Waveform = memo(function Waveform({
       }}
       onPointerUp={(e) => {
         draggingRef.current = false;
+        onScrubChange?.(false);
         try {
           e.currentTarget.releasePointerCapture?.(e.pointerId);
         } catch {
@@ -106,6 +114,7 @@ export const Waveform = memo(function Waveform({
       }}
       onPointerCancel={() => {
         draggingRef.current = false;
+        onScrubChange?.(false);
       }}
       className={cn(
         'relative h-9 w-full touch-none select-none',

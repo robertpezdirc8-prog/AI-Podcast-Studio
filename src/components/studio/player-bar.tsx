@@ -84,6 +84,8 @@ interface PlayerBarProps {
   waveform?: number[] | null;
   /** Skok na globalni čas (ms) — klik/vleci obliki valovanja. */
   onSeekMs?: (ms: number) => void;
+  /** Začetek/konec vlečenja valovanja (Task 54) — za scrub-guard v studiu. */
+  onWaveformScrub?: (active: boolean) => void;
 }
 
 /** Gumb za skok naprej/nazaj 10 s (podcast standard, stil Pocket Casts/Snipd). */
@@ -216,6 +218,7 @@ export function PlayerBar({
   onToggleMute,
   waveform = null,
   onSeekMs,
+  onWaveformScrub,
 }: PlayerBarProps) {
   const max = total > 0 ? total : 100;
   const value = Math.min(elapsed, max);
@@ -297,6 +300,7 @@ export function PlayerBar({
                   bars={waveform as number[]}
                   progress={max > 0 ? Math.min(1, Math.max(0, value / max)) : 0}
                   onSeekFraction={(fraction) => onSeekMs?.(Math.round(fraction * total * 1000))}
+                  onScrubChange={onWaveformScrub}
                   disabled={!hasAudio}
                 />
               ) : (

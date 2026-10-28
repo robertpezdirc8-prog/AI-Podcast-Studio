@@ -334,6 +334,13 @@ export function EpisodeStudio({
   const ghostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ghostRafRef = useRef<number | null>(null);
   const ghostActiveRef = useRef(false);
+  /**
+   * Ali uporabnik trenutno VLEČE obliko valovanja (Task 54). Med vlečenjem
+   * `timeupdate` (~4 Hz) ne sme prevzemati pozicije — sicer se glava
+   * predvajanja kratkotrajno vrne na staro mesto med premiki miške.
+   * Waveform to sporoča prek `onScrubChange` (ref, ne stanje — brez rerenderjev).
+   */
+  const waveformScrubRef = useRef(false);
   /*
    * JINGLE UVOD/IZHOD (Task 30) — isti knjižni zvočni znaki kot v MP3 izvozu.
    * Uvod: pre-roll pred 1. vrstico ob zagonu od začetka (NI del časovne osi
@@ -718,7 +725,9 @@ export function EpisodeStudio({
     };
     const handleTime = () => {
       const t = audio.currentTime;
-      setCurrentTime(t);
+      // Med vlečenjem valovanja položaja NE prevzemamo (glava sledi prstu;
+      // nadzor prevzame naslednji timeupdate po spustu — Task 54).
+      if (!waveformScrubRef.current) setCurrentTime(t);
       if (audio.paused) return;
       // Rezervni sprožilec prekrivnega vzklika (če razporejeni časovnik zamudi
       // — npr. zaradi spremembe hitrosti predvajanja)
@@ -2786,6 +2795,9 @@ export function EpisodeStudio({
         onToggleMute={toggleMute}
         waveform={waveformBars}
         onSeekMs={seekToGlobalMs}
+        onWaveformScrub={(active) => {
+          waveformScrubRef.current = active;
+        }}
       />
 
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
