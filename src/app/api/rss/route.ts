@@ -3,7 +3,8 @@ import fs from 'fs'
 import { db } from '@/lib/db'
 import { EXPORT_PREFIX, exportEpisodeMp3Locked } from '@/lib/podcast-ai'
 
-const RSS_XMLNS = 'xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/"'
+// Podcasting 2.0 (Podcast Index namespace): transcript, chapters, person.
+const RSS_XMLNS = 'xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:podcast="https://podcastindex.org/namespace/1.0"'
 
 function escapeXml(text: string): string {
   return text
@@ -18,8 +19,21 @@ function rfc822(date: Date): string {
   return date.toUTCString()
 }
 
+/** Imena gostiteljev iz hostsJson (ScriptHost[]) — varno pri pokvarjenem JSON. */
+function parseHostNames(hostsJson: string): string[] {
+  try {
+    const parsed: unknown = JSON.parse(hostsJson)
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .map((h) => String((h as { name?: unknown })?.name ?? '').trim())
+      .filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
 /**
- * Pravi podcast RSS feed (iTunes oznake + enclosures).
+ * Pravi podcast RSS feed (iTunes oznake + enclosures + Podcasting 2.0).
  * MP3 datoteke se izvozijo lenobno ob prvi zahtevi.
  */
 export async function GET(req: NextRequest) {
@@ -90,6 +104,22 @@ export async function GET(req: NextRequest) {
         : ''
       if (!channelImageHref && episode.coverPath) channelImageHref = `${base}${episode.coverPath}`
 
+      // Podcasting 2.0 (Raziskava R1): podnapisi/transkript + poglavja + ljudje.
+      //   transcript — časovno vezana VTT (rel="captions") in SRT ter goli TXT;
+      //   chapters   — Podcasting 2.0 JSON (application/json+chapters);
+      //   person     — gostitelji iz hostsJson (role="host").
+      const lang = episode.language || 'sl'
+      const epBase = `${base}/api/episodes/${episode.id}`
+      const podcastTags = [
+        `<podcast:transcript url="${escapeXml(`${epBase}/vtt`)}" type="text/vtt" rel="captions" language="${escapeXml(lang)}" />`,
+        `<podcast:transcript url="${escapeXml(`${epBase}/srt`)}" type="application/x-subrip" rel="captions" language="${escapeXml(lang)}" />`,
+        `<podcast:transcript url="${escapeXml(`${epBase}/transcript`)}" type="text/plain" language="${escapeXml(lang)}" />`,
+        `<podcast:chapters url="${escapeXml(`${epBase}/chapters?format=json`)}" type="application/json+chapters" />`,
+        ...parseHostNames(episode.hostsJson).map(
+          (name) => `<podcast:person role="host">${escapeXml(name)}</podcast:person>`,
+        ),
+      ]
+
       items.push(
         [
           '<item>',
@@ -103,6 +133,7 @@ export async function GET(req: NextRequest) {
           durationTag,
           `<content:encoded><![CDATA[${notesHtml}${transcript}]]></content:encoded>`,
           enclosure,
+          ...podcastTags,
           '</item>',
         ]
           .filter(Boolean)

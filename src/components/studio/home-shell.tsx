@@ -246,8 +246,9 @@ export function HomeShell() {
             href="/api/rss"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-900 hover:text-amber-400"
-            aria-label="RSS feed podkasta (odpre se v novem zavihku)"
+            title="RSS feed s Podcasting 2.0 oznakami: podnapisi (VTT/SRT), poglavja (JSON) in gostitelji"
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-amber-400"
+            aria-label="RSS feed podkasta s Podcasting 2.0 oznakami (odpre se v novem zavihku)"
           >
             <Rss className="size-3.5" aria-hidden="true" /> RSS feed
           </a>

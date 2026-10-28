@@ -5,10 +5,13 @@ import { buildYoutubeChaptersText, computeExportChapters } from '@/lib/podcast-a
 type Ctx = { params: Promise<{ id: string }> }
 
 /**
- * Poglavja v formatu za YouTube opis (prvi žig 0:00, m:ss Naslov).
- * Časovni žigi sovpadajo z MP3/MP4 izvozom (z uvodno melodijo).
+ * Poglavja epizode:
+ *  - privzeto: format za YouTube opis (prvi žig 0:00, m:ss Naslov);
+ *  - `?format=json`: Podcasting 2.0 chapters JSON (application/json+chapters)
+ *    za `podcast:chapters` oznako v RSS — startTime v SEKUNDAH (float),
+ *    prvo poglavje na 0 (uvodna melodija), kot na izvozu MP3/MP4.
  */
-export async function GET(_req: NextRequest, ctx: Ctx) {
+export async function GET(req: NextRequest, ctx: Ctx) {
   try {
     const { id } = await ctx.params
     const episode = await db.episode.findUnique({
@@ -20,7 +23,15 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
     }
 
     const lines = episode.lines.slice().sort((a, b) => a.idx - b.idx)
-    const text = buildYoutubeChaptersText(computeExportChapters(lines))
+    const markers = computeExportChapters(
+      lines.map((l) => ({
+        speaker: l.speaker,
+        text: l.text,
+        audioPath: l.audioPath,
+        chapter: l.chapter,
+        emotion: l.emotion,
+      })),
+    )
 
     const asciiName =
       episode.title
@@ -28,6 +39,27 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
         .replace(/["\\]/g, '')
         .trim() || 'epizoda'
 
+    if (req.nextUrl.searchParams.get('format') === 'json') {
+      const chaptersJson = {
+        version: '1.2.0',
+        title: episode.title,
+        podcastName: 'AI Podcast Studio',
+        chapters: markers.map((m) => ({
+          startTime: Math.round(m.startMs) / 1000,
+          title: m.title,
+        })),
+      }
+      return new NextResponse(JSON.stringify(chaptersJson, null, 2), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json+chapters; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${asciiName}-poglavja.json"`,
+          'Cache-Control': 'no-store',
+        },
+      })
+    }
+
+    const text = buildYoutubeChaptersText(markers)
     return new NextResponse(text, {
       status: 200,
       headers: {

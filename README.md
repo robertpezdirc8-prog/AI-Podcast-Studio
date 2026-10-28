@@ -77,10 +77,20 @@ AI Podcast Studio je splet aplikacija, ki iz ene teme samostojno napiše dvogost
 | **MP3 izrezek poglavja** | `/api/episodes/:id/chapterclip?index=N` | mastered izrezek poglavja z APIC |
 | **MP4 audiogram** | `/api/episodes/:id/video` | ovitek + animirani valovni obrazec + poglavja |
 | **Shorts MP4** | `/api/episodes/:id/short?index=N&style=S` | **vertikalni 9:16 (720×1280)** z **vžganimi podnapisi, ki sledijo govoru** (ASS/libass), ovitek + val + znamka; **3 podnapisna stila**: `klasika` (belo + črni obroba, jantarno ime govorca), `okvir` (TikTok box — belo na pol-prosojnem kvadru), `poudarek` (rumeno + debelejša obroba, belo ime govorca) |
-| **RSS feed** | `/api/rss` | iTunes feed (kanal + epizode, itunes:image, poglavja) |
+| **RSS feed** | `/api/rss` | iTunes feed + **Podcasting 2.0** (podnapisi, poglavja, gostitelji) |
 | **SRT podnapisi** | `/api/episodes/:id/srt` | celotni transkript s časi |
+| **WebVTT podnapisi** | `/api/episodes/:id/vtt` | isti transkript v formatu WebVTT (Apple/Overcast captions) |
+| **Poglavja JSON** | `/api/episodes/:id/chapters?format=json` | Podcasting 2.0 chapters (startTime v sekundah) |
 
 Shorts podnapisna plast: delčki ≤ 72 znakov s sorazmernim časom, min prikaz 0,6 s, točne šumniki (ž/š/č), usklajeni do milisekunde z zvokom (skupna časovnica z MP3 izrezkom).
+
+### 🎙️ Podcasting 2.0 (Podcast Index namespace)
+
+RSS feed vsebuje oznake nove generacije, ki jih znajo sodobne podkstne aplikacije (Overcast, Fountain, Podverse):
+
+- **`podcast:transcript`** — VTT + SRT (`rel="captions"`, časovno vezana) in goli TXT transkript; `language` sledi jeziku epizode
+- **`podcast:chapters`** — poglavja v `application/json+chapters` (startTime v sekundah, ista časovnica kot izvoz)
+- **`podcast:person`** — gostitelji epizode (`role="host"`) iz nastavitve glasov
 
 ---
 

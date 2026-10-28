@@ -3638,19 +3638,31 @@ function srtTime(ms: number): string {
   return `${pad(h)}:${pad(m)}:${pad(s)},${pad(msPart, 3)}`
 }
 
+/** WebVTT čas: enak kot SRT, le decimalna LOČKA namesto vejice (spec format). */
+function vttTime(ms: number): string {
+  return srtTime(ms).replace(',', '.')
+}
+
+/** En časovni podnapisni blok (SRT/VTT skupna hrbtenica). */
+export interface TimedCue {
+  startMs: number
+  endMs: number
+  text: string
+}
+
 /**
- * Zgradi SRT podnapise iz vrstic. Časovni žigi sovpadajo z MP3 izvozom brez
- * melodije (?jingle=0): kontekstne pavze + prekrivanja backchannelov.
+ * Skupna časovna hoja SRT/VTT (in vseh časovno vezanih izvozov): kontekstne
+ * pavze + prekrivanja backchannelov, tako da podnapisi izbruhajo točko ob
+ * govorniku. Brez melodije (kot SRT doslej).
  */
-export function buildSrt(
+export function exportCueList(
   lines: (GapLineInfo & { audioPath: string | null })[],
-): string {
+): TimedCue[] {
+  const cues: TimedCue[] = []
   let cursor = 0
   let prev: GapLineInfo | null = null
   let prevDurMs: number | null = null
   let audioIdx = 0
-  const blocks: string[] = []
-  let n = 1
   for (const line of lines) {
     if (!line.audioPath) continue
     const file = path.join(AUDIO_DIR, path.basename(line.audioPath))
@@ -3665,16 +3677,46 @@ export function buildSrt(
           ? cursor - ov * 1000
           : cursor + gapSecondsFor(prev, line, audioIdx - 1) * 1000
     }
-    blocks.push(
-      [String(n), `${srtTime(Math.max(0, start))} --> ${srtTime(start + dur)}`, `${line.speaker}: ${line.text}`, ''].join('\n'),
-    )
-    n += 1
+    cues.push({ startMs: Math.max(0, start), endMs: start + dur, text: `${line.speaker}: ${line.text}` })
     cursor = Math.max(cursor, start + dur)
     prev = line
     prevDurMs = dur
     audioIdx += 1
   }
-  return blocks.join('\n')
+  return cues
+}
+
+/**
+ * Zgradi SRT podnapise iz vrstic. Časovni žigi sovpadajo z MP3 izvozom brez
+ * melodije (?jingle=0): kontekstne pavze + prekrivanja backchannelov.
+ */
+export function buildSrt(
+  lines: (GapLineInfo & { audioPath: string | null })[],
+): string {
+  const cues = exportCueList(lines)
+  return (
+    cues
+      .map((c, i) => [String(i + 1), `${srtTime(c.startMs)} --> ${srtTime(c.endMs)}`, c.text, ''].join('\n'))
+      .join('\n')
+  )
+}
+
+/**
+ * WebVTT podnapisi (Podcasting 2.0 `podcast:transcript type="text/vtt"`):
+ * enaka časovnica kot SRT, format pa VTT (WEBVTT glava, ločka, brez številcev
+ * blokov — niso obvezni). Apple/Overcast jih znajo prikazati kot captions.
+ */
+export function buildVtt(
+  lines: (GapLineInfo & { audioPath: string | null })[],
+  language = 'sl',
+): string {
+  const cues = exportCueList(lines)
+  if (cues.length === 0) return ''
+  const header = ['WEBVTT', `Kind: captions`, `Language: ${language}`, ''].join('\n')
+  const body = cues
+    .map((c) => [`${vttTime(c.startMs)} --> ${vttTime(c.endMs)}`, c.text, ''].join('\n'))
+    .join('\n')
+  return `${header}\n${body}`
 }
 
 export const COVER_DIR = path.join(process.cwd(), 'db', 'covers')
