@@ -74,17 +74,26 @@ const EDGE_VOICE_MODELS: Record<string, string> = {
  * ki jih za seboj pusti ffmpeg asetrate/atempo premik (to je bil vzrok
  * "trdega" zvoka Jakoba/Matjaža). ±12 Hz ≈ ±2 poltona pri moškem glasu.
  *
- * Task 67 (»otroška predstava«): višji pitch = manjši/mlajši zaznani govorec.
- * Rok/Petra/Srečko dobijo RAHLO NIŽJO osnovo (−4/−3/−2 Hz) — toplejši,
- * odrasel karakter; jakob ostane namenoma višji (energični lik),
- * matjaž še naprej najnižji (umirjeni lik).
+ * Task 68 (»otroška predstava« — RAZISKAVA namesto eksperimentiranja):
+ * - edge-tts README: SSML je BLOKIRAN (Microsoft dovoli le rate/volume/pitch)
+ *   → pitch je EDINI dokumentirani vzvod za barvo glasu.
+ * - Azure SSML dokumentacija: pitch spremembe naj bodo znotraj 0,5–1,5× izvira.
+ * - Izmerjeno (avtokorelacija, 40 ms okvirji): Rok F0 mediana 99,6 Hz,
+ *   Petra 189,0 Hz — OBE že odrasli normi (moški ~85–155, ženske ~165–255 Hz);
+ *   prejšnji −4/−3 Hz = −0,7 st = ZASLIŠNO NEOPAZNO → zato "še vedno otroško".
+ * - Nova vrednost ≈ 0,92× izvira (znotraj MS omejitve, jasno zaslišno):
+ *   Rok 99,6 → 91,6 Hz (−1,5 st), Petra 189 → 174 Hz (−1,4 st).
+ * - Menjava glasu NI rešitev: Multilingual glasovi (Andrew/Ava/Brian/Emma/Florian)
+ *   so izmerjeno (ASR povratni test) prešli v srbohrvaščino/češčino na zahtevnejših
+ *   stavkih — slovenska izgovarjava ostane pri nativnih sl-SI glasovih.
+ * Jakob ostane namenoma višji (energični lik), matjaž najnižji (umirjeni lik).
  */
 const EDGE_PITCH_HZ: Record<string, string> = {
-  rok: '-4Hz',
-  petra: '-3Hz',
+  rok: '-16Hz',
+  petra: '-14Hz',
   jakob: '+12Hz',
   matjaz: '-12Hz',
-  srecko: '-2Hz',
+  srecko: '-10Hz',
 }
 
 // Edge TTS izhaja MP3 24 kHz mono
@@ -328,6 +337,7 @@ export async function generatePodcastScript(opts: {
     `- Vsakih ~4–6 vrstic dodaj SAMOSTOJNO vrstico-reakcijo drugega ${withGuest ? 'udeleženca' : 'voditelja'} (backchannel, 1–5 besed, vedno s končnim ločilom): "Mhm.", "Tako je.", "Jasno.", "Zanimivo.", "Točno tako.", "Hm, dobro vprašanje.", "Nisem vedel." — odrasli voditelji se odzivajo mirno in samozavestno, ne kričijo od navdušenja.`,
     `- 1–2 reakciji naj bosta ČISTI KRAJŠI vzklik brez nadaljevanja (samo "Mhm." / "Tako je." / "Jasno.") — takšna vrstica se v predvajalniku naravno PREKRije s prejšnjo povedjo. Ostale reakcije naj bodo mirne s sostavino ("Zanimivo — to pa podatek.", "Hm, ampak kaj pa …").`,
     `- Reakcije naj bodo PESTRE a UMERJENE: nikoli dva enaka zaporedoma, NIČ kričavega ("Vau!", "Ma daj!", "Ne morem verjeti!") — presenečenje izrazi z besedami ("To pa nisem pričakoval."), ne z vzkliki.`,
+    `- TON naj bo utirjen in ODRASEL: srednje dolge povedi s padajočo končno intonacijo, največ 1–2 klicaja v celotni epizodi, vprašanja mirna in konkretna — nikoli serij vprašanj eno za drugim. Pretirana melodičnost (naraščanje na koncu vsake povedi) zveni kot otroška predstava.`,
     `- Dopusti prijazen naval/dopolnitev: en konča misel, drug takoj priklopi ("Ja, in še najboljše je…", "— točno, in zato je…").`,
     `- NE ponavljaj dobesedno tega, kar je drugi pravkar rekel, razen kratkega sklica nanj.`,
     `- emotion naj odraža vlogo vrstice: vprašanje → "radovedno", razlaga → "premišljeno" ali "mirno", strinjanje → "toplije", oster podatek → "resno". Nikoli pretirano ("šokiran", "navdušeno", "smeje se").`,
@@ -1526,7 +1536,7 @@ export async function edgeSynthesize(
       )
     } else {
       console.log(
-        `[tts] tempo vrstice: rate ${ratePct} % (osnovni ${BASE_RATE_PCT > 0 ? '+' : ''}${BASE_RATE_PCT} % + jitter ${jitterPct > 0 ? '+' : ''}${jitterPct})`,
+        `[tts] tempo vrstice: rate ${ratePct} % (osnovni ${BASE_RATE_PCT > 0 ? '+' : ''}${BASE_RATE_PCT} % + jitter ${jitterPct > 0 ? '+' : ''}${jitterPct}), pitch ${pitchHzNum} Hz`,
       )
     }
     if (!fs.existsSync(outPath) || fs.statSync(outPath).size < 1000) {

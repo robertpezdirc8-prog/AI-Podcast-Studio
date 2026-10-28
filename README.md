@@ -35,6 +35,7 @@ AI Podcast Studio je splet aplikacija, ki iz ene teme samostojno napiše dvogost
 - **Stiskanje notranjih pavz** — Edge vdaja znotraj vrstice pavze do 1 s na stavčnih mejah; filter jih skrajša na največ 0,32 s (dihi ostanejo) → dialog med sogovorniki teče brez mrtve tišine
 - **Glasbena podlaga prelokov z duckingom** — determinističen Aadd9 pad pod poglavitnimi prelomi; `sidechaincompress` ga usede ≈15 dB pod govorom, v pavzi pa "za dihe" nazaj (radio veriga: mastering samo na govoru → glasba po masteringu na absolutni ravni)
 - **Mehka obdelava** — dvoprehodni **linearni** loudnorm (brez pumpanja), highpass 75 Hz, okrepljen de-esser, mehčanje ostrine soglasnikov (3 kHz −3 dB, 5,5 kHz −1,5 dB, treble −2,2 dB), blag kompresor (ratio 1,4, počasen napad 45 ms = mehak dotik), mehki limiter; 24 kHz cevovod
+- **Odrasel ton glasov (raziskano, ne ugibano)** — Edge protokol SSML-a BLOKIRA, edini dokumentirani vzvod za barvo glasu je `--pitch` (edge-tts README); vrednosti iz **izmerjenega F0**: Rok 99,6 → 92 Hz in Petra 189 → 174 Hz (≈0,92× — znotraj Azure omejitve 0,5–1,5×) → −1,5/−1,4 poltona zrelosti brez artefaktov. Multilingual glasovi (Andrew, Ava, Brian …) so bili preizkušeni in z ASR povratnim testom **zavrnjeni** — na zahtevnejših slovenskih stavkih preidejo v srbohrvaščino/češčino; izgovarjava ostaja 100 % nativna
 
 ### 📺 Karaoke predvajalnik
 - **ON AIR** indikator, oznaka aktivne vrstice, poglavjski čipi, valovni obrazec
