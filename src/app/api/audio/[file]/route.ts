@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 import { AUDIO_DIR, ensureGapFile } from '@/lib/podcast-ai'
+import { rangeResponse } from '@/lib/http-range'
 
 type Ctx = { params: Promise<{ file: string }> }
 
@@ -16,7 +17,7 @@ const GAP_PATTERN = /^gap_(\d+\.\d{1,2})\.wav$/
 const GAP_MIN_SECONDS = 0.01
 const GAP_MAX_SECONDS = 30
 
-export async function GET(_req: NextRequest, ctx: Ctx) {
+export async function GET(req: NextRequest, ctx: Ctx) {
   try {
     const { file } = await ctx.params
 
@@ -45,15 +46,8 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
 
     const buffer = fs.readFileSync(filePath)
     const contentType = file.toLowerCase().endsWith('.mp3') ? 'audio/mpeg' : 'audio/wav'
-    return new NextResponse(new Uint8Array(buffer), {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Content-Length': String(buffer.length),
-        'Cache-Control': 'public, max-age=31536000, immutable',
-        'Accept-Ranges': 'bytes',
-      },
-    })
+    /* Range (Task 57): pravi 206 za seek/nadaljevanje, 200 za celoto. */
+    return rangeResponse(req, buffer, contentType, 'public, max-age=31536000, immutable')
   } catch (error) {
     console.error('[api/audio/:file GET]', error)
     return NextResponse.json({ error: 'Napaka pri branju zvoka' }, { status: 500 })

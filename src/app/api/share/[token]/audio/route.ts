@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import { db } from '@/lib/db'
 import { exportEpisodeMp3Locked } from '@/lib/podcast-ai'
+import { rangeResponse } from '@/lib/http-range'
 
 type Ctx = { params: Promise<{ token: string }> }
 
@@ -65,17 +66,14 @@ export async function GET(req: NextRequest, ctx: Ctx) {
         .replace(/["\\]/g, '')
         .trim() || 'epizoda'
 
-    return new NextResponse(new Uint8Array(buffer), {
-      status: 200,
-      headers: {
-        'Content-Type': 'audio/mpeg',
-        'Content-Length': String(buffer.length),
-        'Content-Disposition': asDownload
-          ? `attachment; filename="${asciiName}.mp3"; filename*=UTF-8''${encodeURIComponent(episode.title)}.mp3`
-          : 'inline',
-        'Cache-Control': 'no-store',
-        'Accept-Ranges': 'bytes',
-      },
+    /*
+     * Range (Task 57): pravi 206/416 — brskalnik ob iskanju ne prejme več
+     * celega MP3, `?prenos=1` pa postane NADALJUJEM prenos (curl -C -).
+     */
+    return rangeResponse(req, buffer, 'audio/mpeg', 'no-store', {
+      'Content-Disposition': asDownload
+        ? `attachment; filename="${asciiName}.mp3"; filename*=UTF-8''${encodeURIComponent(episode.title)}.mp3`
+        : 'inline',
     })
   } catch (error) {
     console.error('[api/share/:token/audio GET]', error)
