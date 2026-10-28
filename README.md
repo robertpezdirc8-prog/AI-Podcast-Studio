@@ -53,6 +53,7 @@ AI Podcast Studio je splet aplikacija, ki iz ene teme samostojno napiše dvogost
 ### 🌍 Javna delitev
 - **Javna povezava `/?deli=<žeton>`** — stran za poslušalce: ovitek, predvajalnik (drsnik, ±10 s, hitrost 1×–2×), poglavja s klikom = skok, zapiski, prepis in prenos MP3 — brez studia, brez ID-ja epizode
 - **Tipkovne bližnjice poslušalca** — preslednica = predvajaj/pavza, ← → = ±10 s (isti vzorec varovanja kot studio)
+- **Vlečenje drsnika brez poskoka** — med vlečenjem `timeupdate` ne prevzame položaja (scrub-guard), skok se potrdi ob spustu; naslov zavihka nosi naslov epizode
 - Neugljiv **16-znakovni žeton** (base64url), stabilen: izklop povezavo takoj onemogoči, ponovni vklop uporabi isti žeton
 - Javni zvok je ISTI MP3 izvoz (uvodna melodija, ID3, ovitek) — samo preko žetona, prvi klic ga kešira na disku
 

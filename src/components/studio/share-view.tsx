@@ -74,6 +74,12 @@ export function ShareView({ token, onExit }: ShareViewProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   /** Zadnji zapis pozicije na zaklenjeni zaslon (dušilnik ~1 s). */
   const posStateAtRef = useRef(0);
+  /**
+   * Ali uporabnik trenutno VLEČE drsnik (Task 53). Med vlečenjem `timeupdate`
+   * (~4 Hz) ne sme prevzemati položaja — sicer se palec drsnika "bori" z
+   * vlečenjem in nazadnje skače. Ref namesto stanja: brez ponovnega risanja.
+   */
+  const scrubbingRef = useRef(false);
 
   useEffect(() => {
     // Začetno stanje (nalaganje) je že deklarirano pri useState —
@@ -121,11 +127,21 @@ export function ShareView({ token, onExit }: ShareViewProps) {
     }
   }, []);
 
+  /**
+   * Skok na ciljno sekundo. Stanje nastavimo na CILJ (ne na odčitavanje
+   * `audio.currentTime` — iskanje je asinhrono), tako se vmesnik odzove
+   * takoj; mejimo na trajanje, da ±10 s ob koncu ne pokaže prekoračitve.
+   */
   const seekTo = useCallback((seconds: number) => {
     const audio = audioRef.current;
     if (!audio) return;
-    audio.currentTime = Math.max(0, seconds);
-    setCurrent(audio.currentTime);
+    const dur = audio.duration;
+    const target = Math.min(
+      Math.max(0, seconds),
+      Number.isFinite(dur) && dur > 0 ? dur : seconds,
+    );
+    audio.currentTime = target;
+    setCurrent(target);
   }, []);
 
   const changeRate = useCallback((idx: number) => {
@@ -171,6 +187,17 @@ export function ShareView({ token, onExit }: ShareViewProps) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [togglePlay, seekTo]);
+
+  /* Naslov zavihka (Task 53): deljena epizoda nosi svoj naslov; ob izhodu
+     iz delitvenega pogleda se povrne prejšnji naslov. */
+  useEffect(() => {
+    if (!data) return;
+    const prev = document.title;
+    document.title = `${data.title} · AI Podcast Studio`;
+    return () => {
+      document.title = prev;
+    };
+  }, [data]);
 
   const activeChapter = useMemo(() => {
     if (!data) return -1;
@@ -343,6 +370,9 @@ export function ShareView({ token, onExit }: ShareViewProps) {
                 setMediaPlaybackState('paused');
               }}
               onTimeUpdate={(e) => {
+                // Uporabnik vleče drsnik — prevzem položaja bi povzročil
+                // poskok palca (Task 53).
+                if (scrubbingRef.current) return;
                 const t = e.currentTarget.currentTime;
                 setCurrent(t);
                 // Drsnik na zaklenjenem zaslonu — dovolj na ~1 s (timeupdate pripne 4×).
@@ -388,6 +418,14 @@ export function ShareView({ token, onExit }: ShareViewProps) {
                   max={total > 0 ? total : 1}
                   step={0.1}
                   onValueChange={(value) => seekTo(value[0] ?? 0)}
+                  onPointerDown={() => {
+                    scrubbingRef.current = true;
+                  }}
+                  /* Potrjeno ob spustu tipke in tudi po tipkovnici (Radix)
+                     — predvajanje znova prevzame položaj. */
+                  onValueCommit={() => {
+                    scrubbingRef.current = false;
+                  }}
                   aria-label="Položaj predvajanja"
                   className="cursor-pointer [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-amber-500 [&_[data-slot=slider-range]]:to-orange-600 [&_[data-slot=slider-thumb]]:border-amber-500 [&_[data-slot=slider-thumb]]:bg-zinc-950 [&_[data-slot=slider-track]]:bg-zinc-800"
                 />
@@ -460,7 +498,7 @@ export function ShareView({ token, onExit }: ShareViewProps) {
                     'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors',
                     i === activeChapter
                       ? 'bg-amber-500/10 text-amber-300'
-                      : 'text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100',
+                      : 'text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100',
                     !data.hasAudio && 'cursor-not-allowed opacity-50',
                   )}
                 >
