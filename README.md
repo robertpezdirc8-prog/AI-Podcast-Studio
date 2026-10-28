@@ -104,7 +104,7 @@ RSS feed vsebuje oznake nove generacije, ki jih znajo sodobne podkstne aplikacij
 - **Next.js 16** (App Router) + **TypeScript 5**
 - **Tailwind CSS 4** + **shadcn/ui** (New York) + Lucide ikone + framer-motion
 - **Prisma** + **SQLite**
-- **TTS**: `python3 edge-tts` (Edge nevronski protokol) + Piper (fallback)
+- **TTS**: `python3 edge-tts` (Edge nevronski protokol, pitch po izmerjenem F0) + Piper (rezerva + glas Artur) + z-ai (zadnja rezerva)
 - **ffmpeg** — miks, mastering, audiogrami, shorts (libass za vžgane podnapise)
 - **z-ai-web-dev-sdk** — LLM za skripte, show notes, odgovore, ovitke
 
@@ -130,7 +130,7 @@ bun run db:push
 bun run dev            # http://localhost:3000
 ```
 
-### Opcijsko: Piper zasilni glas (100 % offline)
+### Opcijsko: Piper zasilni glas + glas Artur (100 % offline)
 
 ```bash
 mkdir -p piper && cd piper
@@ -138,10 +138,20 @@ mkdir -p piper && cd piper
 tar xzf piper.tar.gz
 # glasovni model (Artur — pravi slovenski studijski govor, CC-BY-4.0):
 # https://huggingface.co/rhasspy/piper-voices → sl/sl_SI/artur/medium/
-#   postavi sl_SI-artur-medium.onnx(.json) v koren projekta
+mkdir -p db/voices
+mv sl_SI-artur-medium.onnx sl_SI-artur-medium.onnx.json db/voices/
 ```
 
-Brez Pipra aplikacija deluje normalno — Piper se uporabi samo, če Edge TTS ni dosegljiv.
+Brez Pipra aplikacija deluje normalno — Piper se uporabi kot rezerva in za glas **Artur**
+(odprtokodni slovenski studijski pripovedovalec, F0 ≈ 95 Hz — zrelejši od Edge Roka).
+
+⚠️ **Pomembno (pouk iz delovne seje):** če glavni ponudnik odpove, vrstica pade na
+z-ai zasilni glas, ki **ne zna slovenščine** (ASR povratni test: čista govorica).
+Zato po vsaki sintezi preveri dev.log — vrstica `zasilni` pomeni pokvarjen zvok!
+Pogosta vzroka: manjkajoč `edge-tts` modul v pythonu, ki ga uporablja strežnik
+(namesti v OBE okolja: `python3 -m pip install edge-tts` in
+`/usr/bin/python3 -m pip install --break-system-packages edge-tts`),
+ali pa manjkajoči Piper model v `db/voices/`.
 
 ## 🗂️ Struktura projekta
 
