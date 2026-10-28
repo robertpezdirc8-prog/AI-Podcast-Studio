@@ -37,6 +37,7 @@ AI Podcast Studio je splet aplikacija, ki iz ene teme samostojno napiše dvogost
 - **Stereo pan debug** / premik med kanali
 - Iskanje po transkriptu do trenutka, skok ±5 s, 2× hitrost, nadaljuvanje (resume), sleep timer
 - **Urejanje vrstic z re-voice** — spremeni besedilo, znova sintetiziraj vrstico
+- **Room tone pavze v realnem času** — `gap_*.wav` (rožnati šum −52 dB pod govorom) se generira OB ZAHTEVU v ruti `/api/audio/:file`, torej že med predvajanjem v studiu, ne samo ob izvozu; atomsko pisanje + dedup vzporednih zahtevkov
 - **Upravljanje vrstic** — vstavi novo vrstico pod obstoječo ali na konec (govorec po izbiri, takojšnja sinteza), premakni gor/dol (meni ostane odprt za zaporedne premike), izbriši s potrditvenim dialogom; kontekstne pavze in izvozi se samodejno preizračunajo
 - **Vprašaj voditelja** — interaktivno vprašanje sredi epizode (LLM odgovori v slogu epizode)
 

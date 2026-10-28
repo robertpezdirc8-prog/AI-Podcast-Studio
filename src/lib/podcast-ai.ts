@@ -1718,40 +1718,65 @@ function seedHash(seed: number): number {
   return ((seed + 1) * 2654435761) >>> 0
 }
 
-/** Keširana tišina podane dolžine (ime = `gap_<s>.wav`, sprememba → nov keš). */
-export async function ensureGapFile(seconds: number): Promise<string> {
+/** V teku: generiranje iste gap datoteke poteka samo ENKRAT (npr. izvoz +
+ * predvajalnik hkrati zahtevata `gap_0.42.wav` — obe čakata isti obljubi). */
+const gapInFlight = new Map<string, Promise<string>>()
+
+/** Keširana tišina podane dolžine (ime = `gap_<s>.wav`, sprememba → nov keš).
+ * Pisarna piše v enolično ZAČASNO datoteko in jo ATOMSKO preimenuje — vzporedni
+ * zahtevki nikoli ne preberejo polovično zapisane datoteke. */
+export function ensureGapFile(seconds: number): Promise<string> {
   const file = `gap_${seconds.toFixed(2)}.wav`
+  const inFlight = gapInFlight.get(file)
+  if (inFlight) return inFlight
+  const promise = generateGapFile(seconds, file).finally(() => {
+    gapInFlight.delete(file)
+  })
+  gapInFlight.set(file, promise)
+  return promise
+}
+
+async function generateGapFile(seconds: number, file: string): Promise<string> {
   const outPath = path.join(AUDIO_DIR, file)
   if (!fs.existsSync(outPath) || fs.statSync(outPath).size < 1000) {
     fs.mkdirSync(AUDIO_DIR, { recursive: true })
     // Pavza NI digitalna nič — enak room tone kot vrstice (raziskava: room tone
     // −50…−60 dB pod govor "lepi" ločene posnetke v isti prostor — ambience match)
-    await execFile('ffmpeg', [
-      '-y',
-      '-v',
-      'error',
-      '-f',
-      'lavfi',
-      '-i',
-      'anullsrc=r=24000:cl=mono',
-      '-f',
-      'lavfi',
-      '-i',
-      `anoisesrc=color=pink:r=24000:amplitude=1:seed=${Math.floor(Math.random() * 1e6)}`,
-      '-t',
-      String(seconds),
-      '-filter_complex',
-      '[1:a]volume=0.0121[bed];[0:a][bed]amix=inputs=2:duration=first:normalize=0[out]',
-      '-map',
-      '[out]',
-      '-ar',
-      '24000',
-      '-ac',
-      '1',
-      '-c:a',
-      'pcm_s16le',
-      outPath,
-    ])
+    const tmpPath = path.join(AUDIO_DIR, `.${file}.${process.pid}.${Date.now()}.tmp`)
+    try {
+      await execFile('ffmpeg', [
+        '-y',
+        '-v',
+        'error',
+        '-f',
+        'lavfi',
+        '-i',
+        'anullsrc=r=24000:cl=mono',
+        '-f',
+        'lavfi',
+        '-i',
+        `anoisesrc=color=pink:r=24000:amplitude=1:seed=${Math.floor(Math.random() * 1e6)}`,
+        '-t',
+        String(seconds),
+        '-filter_complex',
+        '[1:a]volume=0.0121[bed];[0:a][bed]amix=inputs=2:duration=first:normalize=0[out]',
+        '-map',
+        '[out]',
+        '-ar',
+        '24000',
+        '-ac',
+        '1',
+        '-c:a',
+        'pcm_s16le',
+        // Zacasna datoteka nima standardne koncnice → format EKSPPLICITNO
+        '-f',
+        'wav',
+        tmpPath,
+      ])
+      fs.renameSync(tmpPath, outPath) // atomsko — bralci vidijo samo celo datoteko
+    } finally {
+      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath)
+    }
   }
   return outPath
 }
