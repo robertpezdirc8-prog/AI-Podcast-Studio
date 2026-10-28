@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Download,
   Headphones,
+  History,
   ListOrdered,
   Loader2,
   Mic,
@@ -21,6 +22,8 @@ import {
   SkipBack,
   SkipForward,
   TriangleAlert,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +32,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Slider } from '@/components/ui/slider';
 import {
+  clearSharePosition,
   fetchSharedEpisode,
+  loadDeviceRateIndex,
+  loadDeviceSound,
+  loadSharePosition,
+  saveDeviceRateIndex,
+  saveDeviceSound,
+  saveSharePosition,
   type ShareEpisode,
 } from '@/lib/podcast-client';
 import { hostColor } from '@/lib/podcast-types';
@@ -69,7 +79,16 @@ export function ShareView({ token, onExit }: ShareViewProps) {
   const [total, setTotal] = useState(0);
   const [notesOpen, setNotesOpen] = useState(false);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
-  const [rateIdx, setRateIdx] = useState(0);
+  /* Poslušalčevo nadaljevanje + nastavitve naprave (Task 58). Delitveni
+     pogled se upodobi SAMO odjemalsko (HomeShell žeton bere v učinku), zato
+     lenobi leni initializerji varno berejo localStorage — brez hidracijskega
+     neujemlja in brez setState v učinku. Na <audio> vrednosti uveljavimo
+     ob onLoadedMetadata, ker element med nalaganjem podatkov še ne obstaja. */
+  const [rateIdx, setRateIdx] = useState(() => loadDeviceRateIndex(RATES.length));
+  const [volume, setVolume] = useState(() => loadDeviceSound().volume);
+  const [muted, setMuted] = useState(() => loadDeviceSound().muted);
+  /** Nadaljevalna pozicija za obvestilo (null = ni/že skrito). */
+  const [resumeAt, setResumeAt] = useState<number | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   /** Zadnji zapis pozicije na zaklenjeni zaslon (dušilnik ~1 s). */
@@ -80,6 +99,29 @@ export function ShareView({ token, onExit }: ShareViewProps) {
    * vlečenjem in nazadnje skače. Ref namesto stanja: brez ponovnega risanja.
    */
   const scrubbingRef = useRef(false);
+  /** Dušilnik shranjevanja pozicije (~5 s) med predvajanjem. */
+  const saveAtRef = useRef(0);
+
+  /* Shrani pozicijo ob odhodu: zaprtje zavihka (pagehide), umik app v ozadje
+     (visibilitychange) in izhod iz delitve (unmount) — Apple/Spotify stil:
+     nadaljevanje mora delovati tudi brez eksplicitne pavze. */
+  useEffect(() => {
+    const saveNow = () => {
+      const audio = audioRef.current;
+      if (audio && !audio.ended) saveSharePosition(token, audio.currentTime);
+    };
+    const onHide = () => saveNow();
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') saveNow();
+    };
+    window.addEventListener('pagehide', onHide);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('pagehide', onHide);
+      document.removeEventListener('visibilitychange', onVisibility);
+      saveNow();
+    };
+  }, [token]);
 
   useEffect(() => {
     // Začetno stanje (nalaganje) je že deklarirano pri useState —
@@ -146,6 +188,7 @@ export function ShareView({ token, onExit }: ShareViewProps) {
 
   const changeRate = useCallback((idx: number) => {
     setRateIdx(idx);
+    saveDeviceRateIndex(idx); // nastavitev naprave (Task 58)
     const audio = audioRef.current;
     if (audio) {
       audio.playbackRate = RATES[idx];
@@ -153,6 +196,46 @@ export function ShareView({ token, onExit }: ShareViewProps) {
       setMediaPositionState(audio.duration || total, audio.currentTime, RATES[idx]);
     }
   }, [total]);
+
+  /** Uveljavi glasnost/utislitev na <audio> in shrani nastavitev naprave. */
+  const applySound = useCallback((nextVolume: number, nextMuted: boolean) => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = nextVolume;
+      audio.muted = nextMuted;
+    }
+    saveDeviceSound(nextVolume, nextMuted);
+  }, []);
+
+  const handleVolumeChange = useCallback(
+    (values: number[]) => {
+      const next = Math.min(1, Math.max(0, values[0] ?? 1));
+      setVolume(next);
+      // Vlečenje drsnika iz utišanega stanja povrne zvok (splošna navada).
+      if (next > 0) setMuted(false);
+      applySound(next, next > 0 ? false : muted);
+    },
+    [muted, applySound],
+  );
+
+  const toggleMute = useCallback(() => {
+    const next = !muted;
+    setMuted(next);
+    applySound(volume, next);
+  }, [muted, volume, applySound]);
+
+  const restartFromStart = useCallback(() => {
+    setResumeAt(null);
+    clearSharePosition(token);
+    seekTo(0);
+  }, [token, seekTo]);
+
+  /* Obvestilo o nadaljevanju se samo skrije po 8 s (ne moti poslušanja). */
+  useEffect(() => {
+    if (resumeAt === null) return;
+    const timer = setTimeout(() => setResumeAt(null), 8000);
+    return () => clearTimeout(timer);
+  }, [resumeAt]);
 
   /**
    * Tipkovne bližnjice poslušalca (Task 50): preslednica = predvajaj/pavza,
@@ -361,13 +444,15 @@ export function ShareView({ token, onExit }: ShareViewProps) {
                 setPlaying(true);
                 setMediaPlaybackState('playing');
               }}
-              onPause={() => {
+              onPause={(e) => {
                 setPlaying(false);
                 setMediaPlaybackState('paused');
+                saveSharePosition(token, e.currentTarget.currentTime);
               }}
               onEnded={() => {
                 setPlaying(false);
                 setMediaPlaybackState('paused');
+                clearSharePosition(token); // odigrano do konca — brez nadaljevanja
               }}
               onTimeUpdate={(e) => {
                 // Uporabnik vleče drsnik — prevzem položaja bi povzročil
@@ -385,10 +470,34 @@ export function ShareView({ token, onExit }: ShareViewProps) {
                     RATES[rateIdx],
                   );
                 }
+                // Poslušalčevo nadaljevanje — shranjuj na ~5 s (Task 58).
+                if (now - saveAtRef.current >= 5000) {
+                  saveAtRef.current = now;
+                  saveSharePosition(token, t);
+                }
               }}
               onLoadedMetadata={(e) => {
-                const dur = e.currentTarget.duration;
+                const audio = e.currentTarget;
+                const dur = audio.duration;
                 if (Number.isFinite(dur) && dur > 0) setTotal(dur);
+                // Nastavitve naprave na element (glasnost/utislitev/hitrost).
+                const sound = loadDeviceSound();
+                audio.volume = sound.volume;
+                audio.muted = sound.muted;
+                audio.playbackRate = RATES[loadDeviceRateIndex(RATES.length)];
+                // Nadaljuj od mesta ustavitve (Task 58) — BREZ samodejnega
+                // predvajanja; prikaže se obvestilo z »začni od začetka«.
+                // Pozicije blizu konca (< 10 s) preskočimo — nič za poslušat.
+                const saved = loadSharePosition(token);
+                if (
+                  saved !== null &&
+                  saved >= 5 &&
+                  !(Number.isFinite(dur) && dur > 0 && saved > dur - 10)
+                ) {
+                  audio.currentTime = saved;
+                  setCurrent(saved);
+                  setResumeAt(saved);
+                }
               }}
             />
             <div className="flex items-center gap-3 sm:gap-4">
@@ -451,6 +560,33 @@ export function ShareView({ token, onExit }: ShareViewProps) {
               >
                 {rateLabel(RATES[rateIdx])}
               </button>
+              {/* Glasnost (Task 58): samo namizje — na mobitelu glasnost ureja
+                  sistem (iOS vseeno ignorira audio.volume). */}
+              <div className="hidden shrink-0 items-center gap-2 sm:flex">
+                <button
+                  type="button"
+                  onClick={toggleMute}
+                  aria-label={muted ? 'Vklopi zvok' : 'Utišaj zvok'}
+                  title={muted ? 'Vklopi zvok' : 'Utišaj zvok'}
+                  className="flex size-9 shrink-0 items-center justify-center rounded-full border border-zinc-700 text-zinc-300 transition-colors hover:border-amber-500/40 hover:text-amber-400"
+                >
+                  {muted || volume === 0 ? (
+                    <VolumeX className="size-4" aria-hidden="true" />
+                  ) : (
+                    <Volume2 className="size-4" aria-hidden="true" />
+                  )}
+                </button>
+                <Slider
+                  value={[muted ? 0 : volume]}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  onValueChange={handleVolumeChange}
+                  aria-label="Glasnost"
+                  aria-valuetext={`${Math.round((muted ? 0 : volume) * 100)} %`}
+                  className="w-24 cursor-pointer [&_[data-slot=slider-range]]:bg-amber-500 [&_[data-slot=slider-thumb]]:border-amber-500 [&_[data-slot=slider-thumb]]:bg-zinc-950 [&_[data-slot=slider-track]]:bg-zinc-800"
+                />
+              </div>
               <Button
                 asChild
                 size="sm"
@@ -463,6 +599,24 @@ export function ShareView({ token, onExit }: ShareViewProps) {
                 </a>
               </Button>
             </div>
+            {resumeAt !== null && (
+              <div
+                role="status"
+                className="mt-2.5 flex items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-300"
+              >
+                <History className="size-3.5 shrink-0" aria-hidden="true" />
+                <span>
+                  Nadaljujem od {clock(resumeAt)}
+                </span>
+                <button
+                  type="button"
+                  onClick={restartFromStart}
+                  className="ml-auto shrink-0 rounded font-semibold text-amber-200 underline-offset-2 transition-colors hover:text-amber-100 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50"
+                >
+                  začni od začetka
+                </button>
+              </div>
+            )}
             <p className="mt-2.5 hidden text-[11px] text-zinc-600 sm:block">
               Preslednica = predvajaj · ← → = ±10 s
             </p>

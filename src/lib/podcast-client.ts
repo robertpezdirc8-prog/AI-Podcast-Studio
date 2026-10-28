@@ -487,6 +487,107 @@ export function loadLocalPosition(episodeId: string): number | null {
   }
 }
 
+/* Delitvena stran (Task 58): pozicija po ŽETONU (poslušalec nima ID-ja
+ * epizode), glasnost in hitrost pa so nastavitve NAPRAVE (ne epizode). */
+
+const SHARE_POS_PREFIX = 'aps_pos_deli_';
+const DEVICE_SOUND_KEY = 'aps_zvok';
+const DEVICE_RATE_KEY = 'aps_hitrost';
+
+/** Shrani pozicijo deljene epizode v sekundah (poslušalčevo nadaljevanje). */
+export function saveSharePosition(token: string, seconds: number): void {
+  try {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(SHARE_POS_PREFIX + token, String(Math.max(0, Math.round(seconds))));
+  } catch {
+    // localStorage lahko manjka (zasebni način) — ignoriraj
+  }
+}
+
+/** Preberi pozicijo deljene epizode v sekundah ali null, če je ni. */
+export function loadSharePosition(token: string): number | null {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = localStorage.getItem(SHARE_POS_PREFIX + token);
+    if (raw === null) return null;
+    const value = Number(raw);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Odstrani shranjeno pozicijo (epizoda odigrana do konca / začetek znova). */
+export function clearSharePosition(token: string): void {
+  try {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(SHARE_POS_PREFIX + token);
+  } catch {
+    // ignoriraj
+  }
+}
+
+export interface DeviceSound {
+  /** Glasnost 0..1 (privzeto 1). */
+  volume: number;
+  /** Utišano (privzeto false). */
+  muted: boolean;
+}
+
+/** Nastavitve zvoka naprave (deljene med predvajalniki, Apparatu stil). */
+export function loadDeviceSound(): DeviceSound {
+  try {
+    if (typeof window === 'undefined') return { volume: 1, muted: false };
+    const raw = localStorage.getItem(DEVICE_SOUND_KEY);
+    if (raw === null) return { volume: 1, muted: false };
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return { volume: 1, muted: false };
+    const { volume, muted } = parsed as { volume?: unknown; muted?: unknown };
+    return {
+      volume: typeof volume === 'number' && volume >= 0 && volume <= 1 ? volume : 1,
+      muted: muted === true,
+    };
+  } catch {
+    return { volume: 1, muted: false };
+  }
+}
+
+/** Shrani nastavitve zvoka naprave. */
+export function saveDeviceSound(volume: number, muted: boolean): void {
+  try {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(
+      DEVICE_SOUND_KEY,
+      JSON.stringify({ volume: Math.min(1, Math.max(0, volume)), muted }),
+    );
+  } catch {
+    // ignoriraj
+  }
+}
+
+/** Indeks hitrosti predvajanja (0 = prva; napake → 0). */
+export function loadDeviceRateIndex(max: number): number {
+  try {
+    if (typeof window === 'undefined') return 0;
+    const raw = localStorage.getItem(DEVICE_RATE_KEY);
+    if (raw === null) return 0;
+    const value = Number(raw);
+    return Number.isInteger(value) && value >= 0 && value < max ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Shrani indeks hitrosti predvajanja. */
+export function saveDeviceRateIndex(index: number): void {
+  try {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(DEVICE_RATE_KEY, String(index));
+  } catch {
+    // ignoriraj
+  }
+}
+
 /**
  * Generira TTS zvok za vse vrstice brez `audioPath` z vzporednostjo 2
  * (dva delavca vlečeta iz skupnega števca). Neuspela vratica se poskusita
