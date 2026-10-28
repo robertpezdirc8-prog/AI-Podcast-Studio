@@ -2045,7 +2045,9 @@ async function embedMp3Metadata(
   if (meta.artist) lines.push(`artist=${escapeFfmetadata(meta.artist)}`)
   if (meta.title || meta.artist) lines.push('album=AI Podcast Studio')
   if (hasChapters) {
-    const sorted = [...meta.chapters].sort((a, b) => a.startMs - b.startMs)
+    // `hasChapters` ne zoži meta.chapters (boolean) — `?? []` je varno, ker
+    // hasChapters zagotavlja nepraznost.
+    const sorted = [...(meta.chapters ?? [])].sort((a, b) => a.startMs - b.startMs)
     const totalMs = meta.durationMs && meta.durationMs > 0 ? Math.round(meta.durationMs) : 0
     for (let i = 0; i < sorted.length; i += 1) {
       const start = Math.max(0, Math.round(sorted[i].startMs))
@@ -2475,7 +2477,8 @@ const exportLocks = new Map<string, Promise<EpisodeExport>>()
 export function exportEpisodeMp3Locked(
   episodeId: string,
   lines: (GapLineInfo & { audioPath: string | null })[],
-  opts: { withJingle?: boolean; title?: string; artist?: string } = {},
+  /* Izpeljan iz exportEpisodeMp3 — podvojen tip je bil BREZ coverPath (3 tsc napake). */
+  opts: Parameters<typeof exportEpisodeMp3>[2] = {},
 ): Promise<EpisodeExport> {
   const key = `${episodeId}:${opts.withJingle ? 'j' : 's'}`
   const existing = exportLocks.get(key)

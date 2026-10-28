@@ -33,6 +33,11 @@ import {
   type ShareEpisode,
 } from '@/lib/podcast-client';
 import { hostColor } from '@/lib/podcast-types';
+import {
+  setMediaPlaybackState,
+  setMediaPositionState,
+  useMediaSession,
+} from '@/hooks/use-media-session';
 import { cn } from '@/lib/utils';
 
 interface ShareViewProps {
@@ -67,6 +72,8 @@ export function ShareView({ token, onExit }: ShareViewProps) {
   const [rateIdx, setRateIdx] = useState(0);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  /** Zadnji zapis pozicije na zaklenjeni zaslon (dušilnik ~1 s). */
+  const posStateAtRef = useRef(0);
 
   useEffect(() => {
     // Začetno stanje (nalaganje) je že deklarirano pri useState —
@@ -123,8 +130,13 @@ export function ShareView({ token, onExit }: ShareViewProps) {
 
   const changeRate = useCallback((idx: number) => {
     setRateIdx(idx);
-    if (audioRef.current) audioRef.current.playbackRate = RATES[idx];
-  }, []);
+    const audio = audioRef.current;
+    if (audio) {
+      audio.playbackRate = RATES[idx];
+      // Drsnik na zaklenjenem zaslonu mora poznati novo hitrost.
+      setMediaPositionState(audio.duration || total, audio.currentTime, RATES[idx]);
+    }
+  }, [total]);
 
   /**
    * Tipkovne bližnjice poslušalca (Task 50): preslednica = predvajaj/pavza,
@@ -168,6 +180,37 @@ export function ShareView({ token, onExit }: ShareViewProps) {
     }
     return idx;
   }, [data, current]);
+
+  /*
+   * Media Session (Task 51): naslov/ovitek/gostitelji na zaklenjenem zaslonu,
+   * medijske tipke — ±skok (10 s), prejšnja/naslednja POGRAVJE (kot »sled«).
+   * Klici berejo ŽIVO currentTime prek audioRef — brez zastarelih closures.
+   */
+  useMediaSession(
+    {
+      title: data?.title ?? '',
+      artist: data?.hosts.map((h) => h.name).join(' · ') || 'AI Podcast Studio',
+      album: 'AI Podcast Studio',
+      artworkUrl: data?.coverPath ?? null,
+      onPlay: () => void audioRef.current?.play().catch(() => undefined),
+      onPause: () => audioRef.current?.pause(),
+      onSeekBackward: (offset) => seekTo((audioRef.current?.currentTime ?? 0) - offset),
+      onSeekForward: (offset) => seekTo((audioRef.current?.currentTime ?? 0) + offset),
+      onPrevTrack: () => {
+        if (!data?.chapters.length) return;
+        const t = audioRef.current?.currentTime ?? 0;
+        const prev = [...data.chapters].reverse().find((c) => c.startSec <= t - 1.5);
+        if (prev) seekTo(prev.startSec);
+      },
+      onNextTrack: () => {
+        if (!data?.chapters.length) return;
+        const t = audioRef.current?.currentTime ?? 0;
+        const next = data.chapters.find((c) => c.startSec > t + 0.5);
+        if (next) seekTo(next.startSec);
+      },
+    },
+    `${token}:${data?.title ?? ''}:${data?.coverPath ?? ''}`,
+  );
 
   /* ---------- Stanja: nalaganje / napaka ---------- */
   if (loading) {
@@ -287,10 +330,32 @@ export function ShareView({ token, onExit }: ShareViewProps) {
               ref={audioRef}
               src={audioUrl}
               preload="metadata"
-              onPlay={() => setPlaying(true)}
-              onPause={() => setPlaying(false)}
-              onEnded={() => setPlaying(false)}
-              onTimeUpdate={(e) => setCurrent(e.currentTarget.currentTime)}
+              onPlay={() => {
+                setPlaying(true);
+                setMediaPlaybackState('playing');
+              }}
+              onPause={() => {
+                setPlaying(false);
+                setMediaPlaybackState('paused');
+              }}
+              onEnded={() => {
+                setPlaying(false);
+                setMediaPlaybackState('paused');
+              }}
+              onTimeUpdate={(e) => {
+                const t = e.currentTarget.currentTime;
+                setCurrent(t);
+                // Drsnik na zaklenjenem zaslonu — dovolj na ~1 s (timeupdate pripne 4×).
+                const now = Date.now();
+                if (now - posStateAtRef.current >= 1000) {
+                  posStateAtRef.current = now;
+                  setMediaPositionState(
+                    e.currentTarget.duration || total,
+                    t,
+                    RATES[rateIdx],
+                  );
+                }
+              }}
               onLoadedMetadata={(e) => {
                 const dur = e.currentTarget.duration;
                 if (Number.isFinite(dur) && dur > 0) setTotal(dur);

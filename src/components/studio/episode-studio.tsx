@@ -92,6 +92,11 @@ import {
 import type { PeaksResponse } from '@/lib/podcast-client';
 import type { ShortsCaptionStyle } from '@/lib/podcast-ai';
 import {
+  setMediaPlaybackState,
+  setMediaPositionState,
+  useMediaSession,
+} from '@/hooks/use-media-session';
+import {
   LANGUAGE_LABELS,
   SOURCE_TYPE_LABELS,
   STYLE_LABELS,
@@ -311,6 +316,8 @@ export function EpisodeStudio({
   const lastProgressPostRef = useRef(0); // debelo vsak ~5 s
   const lastTickAtRef = useRef(0); // stenska ura zadnjega timeupdate med predvajanjem
   const lastElapsedMsRef = useRef(0); // zadnja znana pozicija (za flush ob odhodu)
+  const mediaPosAtRef = useRef(0); // dušilnik (~1 s) za drsnik na zaklenjenem zaslonu
+  const totalDurationRef = useRef(0); // trajanje epizode (s) za Media Session
   const finishingRef = useRef(false); // konec epizode v teku — ne pošiljaj več progressa
   const pendingSeekRef = useRef<{ index: number; offsetSec: number; play: boolean } | null>(null);
   const resumeDoneRef = useRef(false);
@@ -683,12 +690,14 @@ export function EpisodeStudio({
       finishingRef.current = false; // novo predvajanje — konec epizode ni več v teku
       lastTickAtRef.current = Date.now();
       armGhostWatch(); // natančen sprožilec prekrivanja na avdio uri (tudi po pavzi/iskanju)
+      setMediaPlaybackState('playing'); // ikona predvajanja na zaklenjenem zaslonu
       onPlayingChange(true);
     };
     const handlePause = () => {
       // Naravni konec vrstice, prekrivni vzklik še teče → predvajanje NI končano
       // (vzklik doigra na drugem kanalu); togglePlay eksplicitno nastavi stanje
       if (ghostActiveRef.current && audio.ended) return;
+      setMediaPlaybackState('paused');
       onPlayingChange(false);
       // Takojšnja objava napredka ob pavzi (tudi ob preklopu vrstice).
       if (finishingRef.current) {
@@ -727,6 +736,12 @@ export function EpisodeStudio({
         Math.round(cumulativeBeforeMs(linesRef.current, durationsRef.current, idx) + t * 1000),
       );
       lastElapsedMsRef.current = elapsedMs;
+      // Drsnik na zaklenjenem zaslonu — dovolj na ~1 s (timeupdate pripne 4×).
+      const nowTs = Date.now();
+      if (nowTs - mediaPosAtRef.current >= 1000) {
+        mediaPosAtRef.current = nowTs;
+        setMediaPositionState(totalDurationRef.current, elapsedMs / 1000, rateRef.current);
+      }
       const id = episodeIdRef.current;
       saveLocalPosition(id, elapsedMs); // nadaljuj od mesta ustavitve
       const now = Date.now();
@@ -911,6 +926,7 @@ export function EpisodeStudio({
       ),
     [lines, durations],
   );
+  totalDurationRef.current = totalDuration; // Media Session (drsnik na zaklenjenem zaslonu)
 
   // Dramaturška analiza epizode (isti pravili kot dialog za novo epizodo; 100 % lokalno).
   const dramaAnalysis = useMemo(() => {
@@ -1386,6 +1402,31 @@ export function EpisodeStudio({
       return next;
     });
   }, []);
+
+  /*
+   * Media Session (Task 51): naslov/ovitek/gostitelji epizode na zaklenjenem
+   * zaslonu; medijske tipke — ±10 s, prejšnja/naslednja vrstica, play/pavza
+   * (tudi ko je zavihek v ozadju). Isto vedenje kot tipkovne bližnjice.
+   */
+  useMediaSession(
+    {
+      title: episode.title,
+      artist: episode.hosts.map((h) => h.name).join(' · ') || 'AI Podcast Studio',
+      album: 'AI Podcast Studio',
+      artworkUrl: episode.coverPath,
+      onPlay: () => {
+        if (!playing) togglePlay();
+      },
+      onPause: () => {
+        if (playing) togglePlay();
+      },
+      onSeekBackward: (offset) => skipSeconds(-offset),
+      onSeekForward: (offset) => skipSeconds(offset),
+      onPrevTrack: () => playPrevLine(),
+      onNextTrack: () => playNextLine(),
+    },
+    `${episode.id}:${episode.title}:${episode.coverPath ?? ''}`,
+  );
 
   // Tipkovne bližnjice: preslednica = predvajaj/ustavi, ←/→ = skok ±10 s,
   // ↑/↓ = prejšnja/naslednja vrstica, M = utišaj, / = iskanje, ? = pomoč.
