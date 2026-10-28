@@ -335,7 +335,7 @@ export function ShareView({ token, onExit }: ShareViewProps) {
         <Skeleton className="mx-auto h-4 w-1/2 rounded-lg bg-zinc-800/60" />
         <Skeleton className="h-24 w-full rounded-xl bg-zinc-800/60" />
         <Skeleton className="h-16 w-full rounded-xl bg-zinc-800/60" />
-        <p className="flex items-center justify-center gap-2 text-sm text-zinc-500">
+        <p className="flex items-center justify-center gap-2 text-sm text-zinc-400">
           <Loader2 className="size-4 animate-spin" aria-hidden="true" />
           Nalagam epizodo …
         </p>
@@ -543,9 +543,10 @@ export function ShareView({ token, onExit }: ShareViewProps) {
                     scrubbingRef.current = false;
                   }}
                   aria-label="Položaj predvajanja"
+                  aria-valuetext={total > 0 ? `${clock(current)} od ${clock(total)}` : undefined}
                   className="cursor-pointer [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-amber-500 [&_[data-slot=slider-range]]:to-orange-600 [&_[data-slot=slider-thumb]]:border-amber-500 [&_[data-slot=slider-thumb]]:bg-zinc-950 [&_[data-slot=slider-track]]:bg-zinc-800"
                 />
-                <div className="mt-1.5 flex items-center justify-between text-xs tabular-nums text-zinc-500">
+                <div className="mt-1.5 flex items-center justify-between text-xs tabular-nums text-zinc-400">
                   <span>{clock(current)}</span>
                   <span>{total > 0 ? clock(total) : '–:––'}</span>
                 </div>
@@ -624,7 +625,7 @@ export function ShareView({ token, onExit }: ShareViewProps) {
                 </button>
               </div>
             )}
-            <p className="mt-2.5 hidden text-[11px] text-zinc-600 sm:block">
+            <p className="mt-2.5 hidden text-[11px] text-zinc-400 sm:block">
               Preslednica = predvajaj · ← → = ±10 s
             </p>
           </CardContent>
@@ -643,7 +644,7 @@ export function ShareView({ token, onExit }: ShareViewProps) {
         <section className="mt-6" aria-labelledby="share-chapters">
           <h2
             id="share-chapters"
-            className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+            className="text-xs font-semibold tracking-[0.2em] text-zinc-400 uppercase"
           >
             <ListOrdered className="mr-1.5 inline size-3.5" aria-hidden="true" />
             Poglavja
@@ -663,7 +664,7 @@ export function ShareView({ token, onExit }: ShareViewProps) {
                     !data.hasAudio && 'cursor-not-allowed opacity-50',
                   )}
                 >
-                  <span className="w-14 shrink-0 text-xs tabular-nums text-zinc-500">
+                  <span className="w-14 shrink-0 text-xs tabular-nums text-zinc-400">
                     {clock(chapter.startSec)}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">
@@ -694,12 +695,12 @@ export function ShareView({ token, onExit }: ShareViewProps) {
           >
             <span
               id="share-notes"
-              className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+              className="text-xs font-semibold tracking-[0.2em] text-zinc-400 uppercase"
             >
               <NotebookText className="mr-1.5 inline size-3.5" aria-hidden="true" />
               Zapiski oddaje
             </span>
-            <span className="text-xs text-zinc-500">{notesOpen ? 'skrij' : 'prikaži'}</span>
+            <span className="text-xs text-zinc-400">{notesOpen ? 'skrij' : 'prikaži'}</span>
           </button>
           {notesOpen && (
             <div className="mt-2.5 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
@@ -733,13 +734,13 @@ export function ShareView({ token, onExit }: ShareViewProps) {
           >
             <span
               id="share-transcript"
-              className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase"
+              className="text-xs font-semibold tracking-[0.2em] text-zinc-400 uppercase"
             >
               <Mic className="mr-1.5 inline size-3.5" aria-hidden="true" />
               Prepis ({data.lines.length}{' '}
               {data.lines.length === 1 ? 'vrstica' : 'vrstic'})
             </span>
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-zinc-400">
               {transcriptOpen ? 'skrij' : 'prikaži'}
             </span>
           </button>
@@ -780,7 +781,7 @@ export function ShareView({ token, onExit }: ShareViewProps) {
         <button
           type="button"
           onClick={onExit}
-          className="text-xs text-zinc-500 transition-colors hover:text-amber-400"
+          className="text-xs text-zinc-400 transition-colors hover:text-amber-400"
         >
           Ustvari svoj podcast — AI Podcast Studio
         </button>

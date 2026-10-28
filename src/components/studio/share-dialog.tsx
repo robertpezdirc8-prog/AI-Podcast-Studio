@@ -145,9 +145,12 @@ export function ShareDialog({ episodeId, episodeTitle, open, onOpenChange }: Sha
                       className="truncate border-zinc-800 bg-zinc-900 pr-2 pl-8 font-mono text-xs text-zinc-300"
                     />
                   </div>
+                  {/* aria-live (Task 61): sprememba »Kopiraj → Kopirano« se
+                      objavi bralcem zaslona, ne le vizualno. */}
                   <Button
                     size="sm"
                     variant="outline"
+                    aria-live="polite"
                     className="shrink-0 gap-1.5 border-zinc-700 bg-zinc-950/60 text-zinc-300 hover:border-amber-500/40 hover:text-amber-400"
                     onClick={() => void handleCopy()}
                   >

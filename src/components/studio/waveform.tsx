@@ -27,6 +27,11 @@ interface WaveformProps {
    * prevzemanje položaja iz `timeupdate`, sicer glava poskakuje.
    */
   onScrubChange?: (active: boolean) => void;
+  /**
+   * Besedilo vrednosti za bralnike zaslona (Task 61) — npr. »0:45 od 2:10«.
+   * Brez tega napove »aria-valuenow« v odstotkih, kar časa ne pove.
+   */
+  valueText?: string;
   disabled?: boolean;
   className?: string;
 }
@@ -49,6 +54,7 @@ export const Waveform = memo(function Waveform({
   progress,
   onSeekFraction,
   onScrubChange,
+  valueText,
   disabled = false,
   className,
 }: WaveformProps) {
@@ -79,6 +85,7 @@ export const Waveform = memo(function Waveform({
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(progress * 100)}
+      aria-valuetext={valueText}
       aria-disabled={disabled || undefined}
       onKeyDown={(e) => {
         if (disabled) return;

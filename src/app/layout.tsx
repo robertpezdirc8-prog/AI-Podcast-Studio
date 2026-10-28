@@ -14,6 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  /* metadataBase (Task 61): absolutizacija OG/Twitter URL-jev brez opozorila;
+     produkcija nastavi NEXT_PUBLIC_APP_URL, sicer ostane localhost. */
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: "AI Podcast Studio",
   description:
     "Ustvari profesionalni dvogostiteljski podcast iz skripte ali teme — AI glasovi (Rok & Petra), karaoke predvajalnik, poglavja, zapiski in izvozi MP3/MP4/RSS.",

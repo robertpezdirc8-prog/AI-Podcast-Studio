@@ -308,6 +308,7 @@ export function PlayerBar({
                   progress={max > 0 ? Math.min(1, Math.max(0, value / max)) : 0}
                   onSeekFraction={(fraction) => onSeekMs?.(Math.round(fraction * total * 1000))}
                   onScrubChange={onWaveformScrub}
+                  valueText={`${formatTime(value)} od ${formatTime(max)}`}
                   disabled={!hasAudio}
                 />
               ) : (
@@ -317,6 +318,7 @@ export function PlayerBar({
                   step={0.1}
                   disabled={!hasAudio}
                   aria-label="Napredek predvajanja"
+                  aria-valuetext={`${formatTime(value)} od ${formatTime(max)}`}
                   className="flex-1 cursor-default [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-amber-500 [&_[data-slot=slider-range]]:to-orange-600 [&_[data-slot=slider-thumb]]:border-amber-500 [&_[data-slot=slider-thumb]]:bg-zinc-950 [&_[data-slot=slider-track]]:bg-zinc-800"
                 />
               )}

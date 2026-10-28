@@ -11,6 +11,10 @@ function Slider({
   value,
   min = 0,
   max = 100,
+  // Task 61: Radix THUMB ima role="slider", Root pa ne — aria-label/valuetext
+  // na Root ju bralci zaslona NE vidijo. Poberemo ju in podamo Thumb-u.
+  "aria-label": ariaLabel,
+  "aria-valuetext": ariaValueText,
   ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
   const _values = React.useMemo(
@@ -53,6 +57,8 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
+          aria-label={typeof ariaLabel === 'string' ? ariaLabel : undefined}
+          aria-valuetext={typeof ariaValueText === 'string' ? ariaValueText : undefined}
           className="border-primary bg-background ring-ring/50 block size-4 shrink-0 rounded-full border shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
         />
       ))}
