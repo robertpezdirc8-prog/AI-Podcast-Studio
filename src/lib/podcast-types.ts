@@ -1,6 +1,6 @@
 // Skupni tipi in konstante za AI Podcast Studio (slovenski vmesnik).
 
-export type VoiceId = 'artur' | 'jakob' | 'matjaz' | 'rok' | 'petra';
+export type VoiceId = 'artur' | 'jakob' | 'matjaz' | 'rok' | 'petra' | 'srecko';
 
 export type EpisodeStyle = 'interview' | 'debate' | 'storytelling' | 'education' | 'custom';
 export type Language = 'sl' | 'en';
@@ -77,6 +77,7 @@ export const VOICES: Record<VoiceId, { name: string; desc: string }> = {
   artur: { name: 'Artur', desc: 'lokalni slovenski glas — deluje brez povezave' },
   jakob: { name: 'Jakob', desc: 'višji, energičen moški glas' },
   matjaz: { name: 'Matjaž', desc: 'nižji, umirjen moški glas' },
+  srecko: { name: 'Srečko', desc: 'gost iz Hrvaške — rahel hrvaški naglas (Microsoft Neural)' },
 };
 
 export const STYLE_OPTIONS: { value: EpisodeStyle; label: string; desc: string }[] = [

@@ -10,6 +10,8 @@ const PREVIEW_TEXTS: Record<string, string> = {
     'Živjo, jaz sem Jakob! Tisti višji in energičen glas — ful sem navdušen, dajva se v to takoj!',
   matjaz:
     'Živjo, jaz sem Matjaž. Mirni in umirjeni ton — to je moja niša. Vsaka stvar dobi svoj čas.',
+  srecko:
+    'Živjo, jaz sem Srečko! Gost sem vam iz Hrvaške — ajme, ful sem razposajen! Dajva narediva dober podcast!',
   en: "Hey! This is my voice on the AI Podcast Studio. Let's record an awesome episode together!",
 }
 

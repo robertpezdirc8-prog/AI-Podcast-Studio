@@ -55,6 +55,8 @@ export interface CreateEpisodeInput {
   language: Language;
   length?: EpisodeLength;
   focus?: string;
+  /** Tretji udeleženec — gost Srečko (hr-HR-SreckoNeural, rahel hrvaški naglas). */
+  withGuest?: boolean;
 }
 
 /** Lastna skripta brez AI modelov: razčlenjevalnik + lokalni Piper TTS (brezplačno). */

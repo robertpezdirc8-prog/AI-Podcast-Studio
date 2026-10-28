@@ -159,6 +159,8 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [style, setStyle] = useState<EpisodeStyle>('interview');
   const [language, setLanguage] = useState<Language>('sl');
+  // Tretji udeleženec — gost Srečko iz Hrvaške (Task 64, hr-HR-SreckoNeural).
+  const [withGuest, setWithGuest] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [previewLoading, setPreviewLoading] = useState<VoiceId | null>(null);
@@ -272,7 +274,7 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
 
     setSubmitting(true);
     try {
-      const payload: CreateEpisodeInput = { style, language, length };
+      const payload: CreateEpisodeInput = { style, language, length, withGuest };
       if (source === 'topic') payload.topic = topic.trim();
       else if (source === 'url') payload.url = url.trim();
       else payload.sourceText = sourceText.trim();
@@ -291,6 +293,7 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
       setAdvancedOpen(false);
       setStyle('interview');
       setLanguage('sl');
+      setWithGuest(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Ustvarjanje epizode ni uspelo.');
     } finally {
@@ -925,6 +928,46 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Gost iz Hrvaške — tretji udeleženec (Task 64) */}
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => setWithGuest((prev) => !prev)}
+                aria-pressed={withGuest}
+                aria-label="Gost iz Hrvaške — dodaj Srečka kot tretjega udeleženca"
+                className={cn(
+                  'flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left transition-all disabled:pointer-events-none disabled:opacity-50',
+                  withGuest
+                    ? 'border-amber-500/60 bg-amber-500/10 ring-2 ring-amber-500/30'
+                    : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-700',
+                )}
+              >
+                <span className="min-w-0">
+                  <span
+                    className={cn(
+                      'block text-sm font-semibold',
+                      withGuest ? 'text-amber-300' : 'text-zinc-200',
+                    )}
+                  >
+                    Gost iz Hrvaške
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-snug text-zinc-400">
+                    Tretji udeleženec Srečko (rahel hrvaški naglas) — okoli četrtine vrstic
+                  </span>
+                </span>
+                <span
+                  className={cn(
+                    'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide',
+                    withGuest
+                      ? 'bg-amber-500/15 text-amber-400'
+                      : 'bg-zinc-800 text-zinc-400',
+                  )}
+                  aria-hidden="true"
+                >
+                  {withGuest ? 'vklopljen' : 'izklopljen'}
+                </span>
+              </button>
             </>
           )}
 

@@ -2282,27 +2282,27 @@ export function EpisodeStudio({
           >
             <TabsTrigger
               value="scenarij"
-              className="min-h-11 gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 data-[state=active]:bg-zinc-800 data-[state=active]:text-amber-300 sm:min-h-9"
+              className="min-h-11 gap-1 rounded-lg px-2 py-1.5 text-xs text-zinc-400 data-[state=active]:bg-zinc-800 data-[state=active]:text-amber-300 sm:min-h-9 sm:gap-1.5 sm:px-3 sm:text-sm"
             >
-              <AudioLines className="size-4" aria-hidden="true" />
+              <AudioLines className="hidden size-4 sm:block" aria-hidden="true" />
               Scenarij
             </TabsTrigger>
             <TabsTrigger
               value="zapiski"
-              className="min-h-11 gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 data-[state=active]:bg-zinc-800 data-[state=active]:text-amber-300 sm:min-h-9"
+              className="min-h-11 gap-1 rounded-lg px-2 py-1.5 text-xs text-zinc-400 data-[state=active]:bg-zinc-800 data-[state=active]:text-amber-300 sm:min-h-9 sm:gap-1.5 sm:px-3 sm:text-sm"
             >
-              <NotebookText className="size-4" aria-hidden="true" />
+              <NotebookText className="hidden size-4 sm:block" aria-hidden="true" />
               Zapiski
             </TabsTrigger>
             <TabsTrigger
               value="dramaturgija"
-              className="min-h-11 gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 data-[state=active]:bg-zinc-800 data-[state=active]:text-amber-300 sm:min-h-9"
+              className="min-h-11 gap-1 rounded-lg px-2 py-1.5 text-xs text-zinc-400 data-[state=active]:bg-zinc-800 data-[state=active]:text-amber-300 sm:min-h-9 sm:gap-1.5 sm:px-3 sm:text-sm"
             >
-              <ListChecks className="size-4" aria-hidden="true" />
+              <ListChecks className="hidden size-4 sm:block" aria-hidden="true" />
               Dramaturgija
               {dramaAnalysis && dramaAnalysis.warnings > 0 && (
                 <span
-                  className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500/15 px-1 text-[10px] font-semibold text-amber-400"
+                  className="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500/15 px-1 text-[10px] font-semibold text-amber-400 sm:ml-1"
                   title={`${dramaAnalysis.warnings} dramaturških opozoril`}
                 >
                   {dramaAnalysis.warnings}

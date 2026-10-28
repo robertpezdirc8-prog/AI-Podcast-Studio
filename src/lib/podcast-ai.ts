@@ -15,7 +15,7 @@ export const AUDIO_DIR = path.join(process.cwd(), 'db', 'audio')
 const PIPER_BIN = path.join(process.cwd(), 'piper', 'piper', 'piper')
 const VOICES_DIR = path.join(process.cwd(), 'db', 'voices')
 
-export const VOICE_IDS = ['rok', 'petra', 'artur', 'jakob', 'matjaz'] as const
+export const VOICE_IDS = ['rok', 'petra', 'artur', 'jakob', 'matjaz', 'srecko'] as const
 
 export type VoiceId = (typeof VOICE_IDS)[number]
 
@@ -38,6 +38,7 @@ const PIPER_VOICE_MODELS: Record<string, string> = {
   matjaz: 'sl_SI-artur-medium.onnx',
   rok: 'sl_SI-artur-medium.onnx',
   petra: 'sl_SI-artur-medium.onnx',
+  srecko: 'sl_SI-artur-medium.onnx',
 }
 
 // Pitch faktor: 1.122462 = +2 poltona (višji, energičen), 0.890899 = −2 poltona (nižji, umirjen)
@@ -47,19 +48,23 @@ const PIPER_PITCH: Record<string, number> = {
   matjaz: 0.890899,
   rok: 1.0,
   petra: 1.26,
+  srecko: 1.0,
 }
 
 /*
- * EDGE TTS (Microsoft Neural) — primarni ponudnik za rok/petra/jakob/matjaz.
+ * EDGE TTS (Microsoft Neural) — primarni ponudnik za rok/petra/jakob/matjaz/srecko.
  * Sinteza poteka prek uradnega Edge "Read Aloud" protokola (brezplačno, brez ključa).
  * Zažene se lokalni python modul edge-tts (pip3 install edge-tts).
  * Če sinteza odpove (ni povezave / manjka modul), se uporabi Piper (artur) kot rezerva.
+ * Srečko = hr-HR-SreckoNeural — EDINI hrvaški Edge glas (Raziskava R1: Marija je
+ * zdaj mk-MK); bere slovensko besedilo z rahlim hrvaškim naglasom — popoln za "gosta".
  */
 const EDGE_VOICE_MODELS: Record<string, string> = {
   rok: 'sl-SI-RokNeural',
   petra: 'sl-SI-PetraNeural',
   jakob: 'sl-SI-RokNeural',
   matjaz: 'sl-SI-RokNeural',
+  srecko: 'hr-HR-SreckoNeural',
 }
 
 /*
@@ -74,6 +79,7 @@ const EDGE_PITCH_HZ: Record<string, string> = {
   petra: '+0Hz',
   jakob: '+12Hz',
   matjaz: '-12Hz',
+  srecko: '+0Hz',
 }
 
 // Edge TTS izhaja MP3 24 kHz mono
@@ -86,6 +92,7 @@ const PIPER_TO_ZAI: Record<string, string> = {
   matjaz: 'jam',
   rok: 'jam',
   petra: 'jam',
+  srecko: 'jam',
 }
 
 export const STYLE_IDS = ['interview', 'debate', 'storytelling', 'education'] as const
@@ -262,12 +269,15 @@ export async function generatePodcastScript(opts: {
   language: string
   length?: string
   focus?: string
+  withGuest?: boolean
   sourceContent?: string
 }): Promise<PodcastScript> {
   const zai = await getZai()
   const langSpec = languageSpec(opts.language)
   const styleSpec = STYLE_LABELS[opts.style] ?? STYLE_LABELS.interview
   const lengthSpec = LENGTH_SPECS[opts.length ?? 'medium'] ?? LENGTH_SPECS.medium
+  const withGuest = opts.withGuest === true
+  const castSpec = withGuest ? 'dva voditelja + gost iz Hrvaške (Srečko)' : 'dva voditelja'
   const focusSpec = opts.focus?.trim()
     ? `DODATNA NAVODILA POSLUŠALCA (obvezno upoštevaj pri tonu, fokusu in vsebini): "${opts.focus.trim().slice(0, 2000)}".`
     : ''
@@ -277,8 +287,8 @@ export async function generatePodcastScript(opts: {
 
   const system = [
     'You are a world-class podcast showrunner and scriptwriter.',
-    'You write tight, entertaining two-host podcast scripts that sound EXACTLY like real people talking — spontaneous, funny, with natural rhythm.',
-    'CRITICAL: the two hosts COLLABORATE — they constantly react to each other, answer questions, build on each other\'s points, use each other\'s names and short backchannel reactions. NEVER write two monologues pasted one after another.',
+    `You write tight, entertaining podcast scripts for ${castSpec} that sound EXACTLY like real people talking — spontaneous, funny, with natural rhythm.`,
+    `CRITICAL: ${withGuest ? 'the speakers COLLABORATE — hosts and the guest constantly react to each other' : 'the two hosts COLLABORATE — they constantly react to each other'}, answer questions, build on each other\'s points, use each other\'s names and short backchannel reactions. NEVER write two monologues pasted one after another.`,
     'You NEVER sound like a newsreader, a textbook, or a translation.',
     'Respond with VALID JSON ONLY. No markdown, no code fences, no commentary.',
   ].join(' ')
@@ -297,13 +307,13 @@ export async function generatePodcastScript(opts: {
       : `- Če imaš polno svobodo, dodaj 2–3 presenetljive konkretne informacje o temi.`,
     ``,
     `PRAVILA DIALOGA — SODELOVANJE (NAJPOMEMBNEJŠA PRAVILA!):`,
-    `- To je POGOVOR dveh ljudi v studiu, NE izmenjava monologov. Vsaka vrstica (razen prve v epizodi in prve v novem poglavju) se MORA neposredno ODZVATI na prejšnjo vrstico: odgovoriti na vprašanje, potrditi, izpodbijati, dopolniti ali se nanjo sklicati.`,
+    `- To je POGOVOR ${withGuest ? 'TREH ljudi v studiu (2 voditelja + gost), ' : 'dveh ljudi v studiu, '}NE izmenjava monologov. Vsaka vrstica (razen prve v epizodi in prve v novem poglavju) se MORA neposredno ODZVATI na prejšnjo vrstico: odgovoriti na vprašanje, potrditi, izpodbijati, dopolniti ali se nanjo sklicati.`,
     `- Če vrstica vsebuje vprašanje, mora NASLEDNJA vrstica biti odgovor nanj — najprej odgovor, šele nato nov podatek ali obratno vprašanje.`,
-    `- Vsaj vsake 3–4 vrstice se govorca naslovita po imenu ali se sklicujeta drug na drugega: "kot si pravkar povedal", "glede tistega, kar si omenil", "točno to sem hotel reči".`,
+    `- Vsaj vsake 3–4 vrstice se ${withGuest ? 'udeleženci' : 'govorca'} naslovita po imenu ali se sklicujeta drug na drugega: "kot si pravkar povedal", "glede tistega, kar si omenil", "točno to sem hotel reči".`,
     `- VEČINA vrstic naj ima 1–2 stavka (do ~170 znakov). Če je treba razložiti kaj daljšega, RAZDELITE razlago na izmenjave — drugi vmes vpraša, dvomi ali dopolni.`,
     `- Če je vrstica vseeno dolga (do 260 znakov), jo sestavi iz DVEH polovic z naravno mejo okoli sredine (kratek stavek, nato nadaljevanje prek "in/pa/ker/ampak/ki" ali vejice) — govorcu omogoči naraven vdih na polovici povedi.`,
     `- Nikoli ne daj istemu govorcu dveh dolgih vrstic zapored. Če mora nadaljevati, naj druga oseba vmes vstavi kratko vprašanje ali reakcijo.`,
-    `- Vsakih ~3–5 vrstic dodaj SAMOSTOJNO vrstico-reakcijo drugega voditelja (backchannel, 1–5 besed, vedno s končnim ločilom): "Mhm.", "Res?", "Aha, glej to!", "Vau!", "Točno tako.", "Ne morem verjeti!", "Ma daj!" — pravi poslušalci vzklikajo povprečno 3–4-krat na minuto (raziskava dialognih korpusov: >40 % izmenjav).`,
+    `- Vsakih ~3–5 vrstic dodaj SAMOSTOJNO vrstico-reakcijo drugega ${withGuest ? 'udeleženca' : 'voditelja'} (backchannel, 1–5 besed, vedno s končnim ločilom): "Mhm.", "Res?", "Aha, glej to!", "Vau!", "Točno tako.", "Ne morem verjeti!", "Ma daj!" — pravi poslušalci vzklikajo povprečno 3–4-krat na minuto (raziskava dialognih korpusov: >40 % izmenjav).`,
     `- Vsaj 3 reakcije naj bodo ČISTI KRAJŠI vzklik brez nadaljevanja (samo "Mhm." / "Res?" / "Vau!" / "Ma daj!") — takšna vrstica se v predvajalniku naravno PREKRije s prejšnjo povedjo, kar zveni kot resničen pogovor. Ostale reakcije naj se pričnejo s vzklikom, nato nadaljujejo z vprašanjem ali dopolnilom.`,
     `- Vzkliki naj bodo PESTRI: nikoli dva enaka zaporedoma. Generični priklopniki ("Mhm.", "Aha.", "Ja.") pomenijo "nadaljuj, poslušam", specifični ("Vau!", "Res?", "Ne morem verjeti!") pa presenečenje nad vsebino.`,
     `- Dopusti prijazen naval/dopolnitev: en konča misel, drug takoj priklopi ("Ja, in še najboljše je…", "— točno, in zato je…").`,
@@ -323,17 +333,21 @@ export async function generatePodcastScript(opts: {
     `- Naslov naj bo privlačen in pogovoren, kot YouTube naslov.`,
     ``,
     `Struktura in tehnična pravila:`,
-    `- Točno 2 voditelja z domačimi imeni, ki ustrezajo jeziku (za slovenščino npr. moška: Rok, Matej, Luka, Anže, Miha, Tomaž; ženska: Petra, Maja, Nina, Anja, Urška, Tjaša).`,
+    withGuest
+      ? `- Točno 3 udeleženci: 2 voditelja z domačimi imeni (za slovenščino npr. Rok, Matej, Luka + Petra, Maja, Nina) + 1 gost iz Hrvaške z imenom Srečko. Srečko govori čisto slovensko, njegov RAHEL hrvaški naglas pa je ZAŽELEN pridih — vmes lahko vrže 1–2 hrvaška vzklika ("Ajme!", "Ma daj…").`
+      : `- Točno 2 voditelja z domačimi imeni, ki ustrezajo jeziku (za slovenščino npr. moška: Rok, Matej, Luka, Anže, Miha, Tomaž; ženska: Petra, Maja, Nina, Anja, Urška, Tjaša).`,
     `- ${lengthSpec.lines} dialogskih vrstic skupaj.`,
     `- Poglavja: ${lengthSpec.chapters}. Vrstici, ki ODPIRA novo poglavje, nastavi chapter = kratek privlačen naslov poglavja (2–5 besed, brez številk), vsem drugim vrsticam chapter = null.`,
     `- Vsaka vrstica največ 260 znakov, govorjena beseda (brez seznamov, markdowna, emojijev in oklepajev).`,
     `- Struktura: močan uvod, ki takoj pritegne, 2 do 3 presenetljiva konkretna fakta, živahna izmenjava replik, topel in zabaven zaključek z napovedjo naslednje teme.`,
-    `- Vsakemu voditelju dodeli RAZLIČEN glas s tega seznama: rok, petra, artur, jakob, matjaz.`,
-    `- rok = naravni moški glas, petra = naravni ženski glas, artur = temeljni moški ton, jakob = višji in energičen, matjaz = nižji in umirjen. Izberi glasa, ki ustrezata značajema voditeljev.`,
-    `- Najboljša kombinacija je moško-ženski duo (rok + petra) — kot v pravih slovenskih podcastih. Imeni naj bodo primerna glasovoma (npr. Rok/Matej/Luka + Petra/Maja/Nina).`,
+    `- Vsakemu udeležencu dodeli RAZLIČEN glas s tega seznama: rok, petra, artur, jakob, matjaz, srecko.`,
+    `- rok = naravni moški glas, petra = naravni ženski glas, artur = temeljni moški ton, jakob = višji in energičen, matjaz = nižji in umirjen, srecko = moški glas z rahlim hrvaškim naglasom. Izberi glasove, ki ustrezajo značajem udeležencev.`,
+    withGuest
+      ? `- Pri gostu: voditelja = moško-ženski duo (rok + petra), gost Srečko = srecko. Gostova dramaturgija: voditelja ga predstavitiva v uvodu, ima ~20–30 % vseh vrstic (nikoli ne prevlada), prinese perspektivo "od zunaj" (primerjave z Hrvaško, poimenja iz svojih izkušenj), v vsakem poglavju vsaj enkrat spregovori, voditelja ga naslovita po imenu in mu zastavita vprašanji.`
+      : `- Najboljša kombinacija je moško-ženski duo (rok + petra) — kot v pravih slovenskih podcastih. Imeni naj bodo primerna glasovoma (npr. Rok/Matej/Luka + Petra/Maja/Nina).`,
     `- Hitrost govora med 0.9 in 1.1.`,
     `- emotion: ena kratka pogovorna beseda za način govora (npr. navdušeno, radovedno, šokiran, smeje se, pretirano, zamišljeno) ali null.`,
-    `- Vsak line.speaker MORA biti eno od imen voditeljev, line.voice/speed pa kopirata njun glas/hitrost.`,
+    `- Vsak line.speaker MORA biti eno od imen ${withGuest ? 'udeležencev (tudi Srečko za gostove vrstice)' : 'voditeljev'}, line.voice/speed pa kopirata njegov glas/hitrost.`,
     ``,
     `PRIMER ŽELJENEGA POGOVORNEGA TONA (samo za okus, ne kopiraj vsebine) — opazi, kako si vsaka replika ODGOVARJA na prejšnjo:`,
     `~ "Živjo, dobrodošli nazaj! Danes pa imava ful dobro temo, res ti bo všeč."`,
@@ -343,7 +357,7 @@ export async function generatePodcastScript(opts: {
     `~ "Aha, glej to! To pa nisem vedel. In kaj se je potem zgodilo?"`,
     ``,
     `JSON oblika točno takšna:`,
-    `{"title": string, "hosts": [{"name": string, "voice": string, "speed": number}, {"name": string, "voice": string, "speed": number}], "lines": [{"speaker": string, "voice": string, "speed": number, "emotion": string | null, "text": string, "chapter": string | null}]}`,
+    `{"title": string, "hosts": [{"name": string, "voice": string, "speed": number}, {"name": string, "voice": string, "speed": number}${withGuest ? ', {"name": "Srečko", "voice": "srecko", "speed": number}' : ''}], "lines": [{"speaker": string, "voice": string, "speed": number, "emotion": string | null, "text": string, "chapter": string | null}]}`,
     `Pomembno: polje "chapter" MORA biti prisotno v VSAKI vrstici (niz naslova ali null).`,
   ].join('\n')
 
@@ -371,9 +385,19 @@ export async function generatePodcastScript(opts: {
         throw new Error('Script shape invalid: not enough hosts or lines')
       }
 
+      /*
+       * GOST (Task 64): kadar je zahtevan, poskusi 1 in 2 jasno zahtevata 3
+       * udeležence — pri ZADNJEM poskusu pa sprejmemo tudi 2 (graciozna
+       * degradacija, kot pri gostoti backchannelov).
+       */
+      const wantHosts = withGuest ? 3 : 2
+      if (withGuest && attempt < 2 && rawHosts.length < 3) {
+        throw new Error('Script shape invalid: guest missing (need 3 speakers)')
+      }
+
       // --- repair & normalize hosts ---------------------------------
       const usedVoices = new Set<string>()
-      const hosts: ScriptHost[] = rawHosts.slice(0, 2).map((h, i) => {
+      const hosts: ScriptHost[] = rawHosts.slice(0, wantHosts).map((h, i) => {
         const obj = (h ?? {}) as Record<string, unknown>
         let voice = isVoiceId(obj.voice) ? obj.voice : VOICE_IDS[i % VOICE_IDS.length]
         while (usedVoices.has(voice)) {
@@ -393,7 +417,7 @@ export async function generatePodcastScript(opts: {
         const text = cleanSpokenText(String(obj.text ?? ''))
         if (!text) continue
         const speakerKey = String(obj.speaker ?? '').toLowerCase().trim()
-        const host = byName.get(speakerKey) ?? hosts[lines.length % 2]
+        const host = byName.get(speakerKey) ?? hosts[lines.length % hosts.length]
         const chapterRaw = obj.chapter ? cleanSpokenText(String(obj.chapter)).slice(0, 60) : ''
         lines.push({
           speaker: host.name,

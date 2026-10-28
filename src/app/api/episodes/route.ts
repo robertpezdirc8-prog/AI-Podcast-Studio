@@ -66,12 +66,14 @@ export async function POST(req: NextRequest) {
       language?: unknown
       length?: unknown
       focus?: unknown
+      withGuest?: unknown
     }
 
     const style = typeof body.style === 'string' ? body.style : 'interview'
     const language = typeof body.language === 'string' ? body.language : 'sl'
     const length = typeof body.length === 'string' && (LENGTH_IDS as readonly string[]).includes(body.length) ? body.length : 'medium'
     const focus = typeof body.focus === 'string' ? body.focus.trim().slice(0, 2000) : ''
+    const withGuest = body.withGuest === true
     const rawUrl = typeof body.url === 'string' ? body.url.trim() : ''
     const rawText = typeof body.sourceText === 'string' ? body.sourceText.trim() : ''
     const topic = typeof body.topic === 'string' ? body.topic.trim() : ''
@@ -138,6 +140,7 @@ export async function POST(req: NextRequest) {
         language,
         length,
         focus: focus || undefined,
+        withGuest,
         sourceContent: sourceContent || undefined,
       })
 
