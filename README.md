@@ -46,6 +46,7 @@ AI Podcast Studio je splet aplikacija, ki iz ene teme samostojno napiše dvogost
 ### 🎨 Ovitki
 - **AI-generirani ovitki** 1024×1024 (keširani, en klik za regeneracijo)
 - Vstavljeni kot **ID3v2.3 APIC** v MP3 izvoze in **itunes:image** v RSS (Apple Podcasts, Overcast, VLC)
+- **Blagovna znamka app** — OG banner + ikona (jantarni mikrofon na temnem ozadju) za deljenje povezav; `lang="sl"`, `theme-color` cink-950 (mobilni brskalnik), favicon
 
 ### ♿ Dostopnost
 - **Jantarni fokusni obroč po celem vmesniku** — shadcn `ring` (`--ring` = amber-500) + lastni `:focus-visible` outline za navadne elemente; miškin klik ne prižge obroča
