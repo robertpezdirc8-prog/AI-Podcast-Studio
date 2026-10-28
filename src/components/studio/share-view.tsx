@@ -50,6 +50,10 @@ function clock(seconds: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
 }
 
+/** Hitrosti predvajanja (Pocket Casts stil) — prikaz v slovenski obliki (1,25×). */
+const RATES = [1, 1.25, 1.5, 2] as const;
+const rateLabel = (r: number) => `${r.toLocaleString('sl-SI')}×`;
+
 export function ShareView({ token, onExit }: ShareViewProps) {
   const [data, setData] = useState<ShareEpisode | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +64,7 @@ export function ShareView({ token, onExit }: ShareViewProps) {
   const [total, setTotal] = useState(0);
   const [notesOpen, setNotesOpen] = useState(false);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
+  const [rateIdx, setRateIdx] = useState(0);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -115,6 +120,45 @@ export function ShareView({ token, onExit }: ShareViewProps) {
     audio.currentTime = Math.max(0, seconds);
     setCurrent(audio.currentTime);
   }, []);
+
+  const changeRate = useCallback((idx: number) => {
+    setRateIdx(idx);
+    if (audioRef.current) audioRef.current.playbackRate = RATES[idx];
+  }, []);
+
+  /**
+   * Tipkovne bližnjice poslušalca (Task 50): preslednica = predvajaj/pavza,
+   * ←/→ = skok ±10 s. Isti vzorec varovanja kot v studiu — ne posegamo, ko
+   * je fokus v vnosnem polju, gumbu, drsniku ali povezavi.
+   */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      const el = document.activeElement as HTMLElement | null;
+      const tag = el?.tagName?.toLowerCase();
+      if (
+        tag === 'input' ||
+        tag === 'textarea' ||
+        tag === 'select' ||
+        el?.isContentEditable ||
+        el?.closest('button, [role="button"], [role="slider"], a[href]')
+      ) {
+        return;
+      }
+      if (e.key === ' ') {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        seekTo((audioRef.current?.currentTime ?? 0) + 10);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        seekTo((audioRef.current?.currentTime ?? 0) - 10);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [togglePlay, seekTo]);
 
   const activeChapter = useMemo(() => {
     if (!data) return -1;
@@ -295,6 +339,15 @@ export function ShareView({ token, onExit }: ShareViewProps) {
               >
                 <SkipForward className="size-4" aria-hidden="true" />
               </button>
+              <button
+                type="button"
+                onClick={() => changeRate((rateIdx + 1) % RATES.length)}
+                aria-label={`Hitrost predvajanja: ${rateLabel(RATES[rateIdx])} — klikni za naslednjo`}
+                title="Hitrost predvajanja"
+                className="flex size-9 shrink-0 items-center justify-center rounded-full border border-zinc-700 text-xs font-semibold tabular-nums text-zinc-300 transition-colors hover:border-amber-500/40 hover:text-amber-400"
+              >
+                {rateLabel(RATES[rateIdx])}
+              </button>
               <Button
                 asChild
                 size="sm"
@@ -307,6 +360,9 @@ export function ShareView({ token, onExit }: ShareViewProps) {
                 </a>
               </Button>
             </div>
+            <p className="mt-2.5 hidden text-[11px] text-zinc-600 sm:block">
+              Preslednica = predvajaj · ← → = ±10 s
+            </p>
           </CardContent>
         </Card>
       ) : (
