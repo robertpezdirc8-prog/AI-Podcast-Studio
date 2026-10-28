@@ -345,7 +345,7 @@ export async function generatePodcastScript(opts: {
     withGuest
       ? `- Pri gostu: voditelja = moško-ženski duo (rok + petra), gost Srečko = srecko. Gostova dramaturgija: voditelja ga predstavitiva v uvodu, ima ~20–30 % vseh vrstic (nikoli ne prevlada), prinese perspektivo "od zunaj" (primerjave z Hrvaško, poimenja iz svojih izkušenj), v vsakem poglavju vsaj enkrat spregovori, voditelja ga naslovita po imenu in mu zastavita vprašanji.`
       : `- Najboljša kombinacija je moško-ženski duo (rok + petra) — kot v pravih slovenskih podcastih. Imeni naj bodo primerna glasovoma (npr. Rok/Matej/Luka + Petra/Maja/Nina).`,
-    `- Hitrost govora med 0.9 in 1.1.`,
+    `- Hitrost govora med 0.85 in 1.0 — nikoli nad 1.0; govor naj zveni sproščen in topel, ne nergav.`,
     `- emotion: ena kratka pogovorna beseda za način govora (npr. navdušeno, radovedno, šokiran, smeje se, pretirano, zamišljeno) ali null.`,
     `- Vsak line.speaker MORA biti eno od imen ${withGuest ? 'udeležencev (tudi Srečko za gostove vrstice)' : 'voditeljev'}, line.voice/speed pa kopirata njegov glas/hitrost.`,
     ``,
@@ -997,12 +997,22 @@ async function polishAudioToWav(
     chain.push('loudnorm=I=-16:TP=-1.5:LRA=11')
   }
   chain.push('highpass=f=75')
-  chain.push('deesser=i=0.35:m=0.55:f=0.5')
+  // De-esser (Task 65 rahlo okrepljen: i 0,35 → 0,40) — sibilantnost je
+  // eden glavnih virov »trdega« zvoka; 0,40 še ne šepa
+  chain.push('deesser=i=0.40:m=0.60:f=0.5')
   chain.push('equalizer=f=3000:width_type=q:w=1.4:g=-2')
   chain.push('treble=g=-1.8:f=8500')
   chain.push('equalizer=f=210:width_type=q:w=0.9:g=1.3')
-  // Blaga kompresija (raziskava: premočno stiskanje kratkih TTS odsekov = "trd" zvok)
-  chain.push('acompressor=threshold=-18dB:ratio=1.8:attack=30:release=400:knee=8:makeup=1.5')
+  /*
+   * Blaga kompresija (raziskava: premočno stiskanje kratkih TTS odsekov =
+   * "trd" zvok). Task 65 še korak mehkeje (povratna informacija »preveč trdi
+   * govor«): prag −18 → −16 dB (stiska se sproži LE na pravih vrhovih),
+   * ratio 1,8 → 1,4, napad 30 → 45 ms (prepusti naravne transiente = mehkejši
+   * dotik), koleno na maksimum 8 (ffmpeg razpon 1–8 — višje bi chain porušilo),
+   * makeup 1,5 → 1,0. loudnorm vseeno postavi končno glasnost na −16 LUFS,
+   * torej izgube »poke« ni — le manj gostote/pritisnjenosti.
+   */
+  chain.push('acompressor=threshold=-16dB:ratio=1.4:attack=45:release=450:knee=8:makeup=1.0')
   // Mehki limitor — kompresorjev makeup lahko potisne vrhove nad 0 dBFS (trdo klipanje!);
   // limitor na −1,5 dBFS jih gladko zavije (brez klipanja = brez trdote)
   chain.push('alimiter=limit=0.84:level=disabled:attack=5:release=60')
@@ -1100,8 +1110,8 @@ async function piperSynthesize(
   const modelFile = PIPER_VOICE_MODELS[voice]
   if (!modelFile) throw new Error(`Ni Piper modela za glas ${voice}`)
   const modelPath = path.join(VOICES_DIR, modelFile)
-  // Piper length_scale ∝ 1/tempo: dodajamo isti osnovni tempo kot Edge
-  // (BASE_RATE_PCT → ×1,05), da je fallback tempa skladen z glavno potjo.
+  // Piper length_scale ∝ 1/tempo: isti osnovni tempo kot Edge (BASE_RATE_PCT,
+  // Task 65: 0 % → ×1,00), da je fallback tempa skladen z glavno potjo.
   const lengthScale = Math.min(2, Math.max(0.5, 1 / (clampSpeed(speed) * (1 + BASE_RATE_PCT / 100))))
 
   const pitch = PIPER_PITCH[voice] ?? 1.0
@@ -1149,7 +1159,9 @@ async function piperSynthesize(
 function prosodyBoostForText(text: string): { rateDelta: number; pitchDelta: number } {
   const t = text.trim()
   if (isBackchannelText(t)) return { rateDelta: 6, pitchDelta: 4 }
-  if (t.endsWith('?')) return { rateDelta: 2, pitchDelta: 3 }
+  // Vprašanja: MELODIJA brez pohitianja (Task 65 — »preveč trdi govor«;
+  // +2 % rate je vprašanja tlakovalo — zdaj ostane le naravna višja intonacija)
+  if (t.endsWith('?')) return { rateDelta: 0, pitchDelta: 3 }
   return { rateDelta: 0, pitchDelta: 0 }
 }
 
@@ -1219,15 +1231,25 @@ const BC_UNDER_DB = -3
  *   - SR (govorna hitrost s pavzami): 4,2 zlog/s → rahlo pod ad-lib
  *     standardom 4,4–5,6 (Tivadar, TV voditelji v dialogu)
  *   - AR/SR (delež pavz): 1,36 → zgornja meja profesionalnega 1,17–1,37
- *     → struktura pavz je pravilna (Edge sam vdaja 26,7 % notranjih tišin),
- *     POPRAVLJA se le absolutni nivo artikulacije.
- * Rešitev: enoten osnovni tempo +5 % na vsebinske vrstice → čista AR ~6,0
- * (sredina razpona), SR ~4,4 (v standardu), AR/SR ~1,30 (sredina).
- * Vzkliki (takeovi) ostanejo izključeni — njihova hitrost je kalibrirana
- * posebej; relativna dramaturgija loka (uvod hitreje, zaključek počasneje)
- * ostane čez osnovo. Pavze NAMERNO nespremenjene (razmerje je že v razponu).
+ *     → struktura pavz je pravilna (Edge sam vdaja 26,7 % notranjih tišin).
+ *
+ * ZGODOVINA: Task 33 je uvedel osnovni tempo +5 % (cilj AR ~6,0 — sredina
+ * razpona). POVratne informacije uporabnika (Task 65, »preveč trdi govor«):
+ * +5 % je govor pritisnil na zgornjo mejo udobja — zveni nergavo in trdo.
+ * Roach: večina naravnih govorcev je pri 5–6 zlog/s; spodnja polovica
+ * razpona (~5,7) se VZEMA kot sproščena, topla izmenjava (NRK/HRT voditelji
+ * v dialogu), zgornja pa kot napovedovalska naglica.
+ *
+ * Rešitev (Task 65): osnovni tempo 0 % (naravna Edge prozodija) → čista
+ * AR ~5,7 (spodnja polovica razpona = sproščeno), SR ~4,2, delež pavz
+ * ostaja v profesionalnem razponu. Vzkliki (takeovi) ostanejo izključeni —
+ * njihova hitrost je kalibrirana posebej; relativna dramaturgija loka
+ * (uvod hitreje, zaključek počasneje) ostane čez osnovo. Pavze NAMERNO
+ * nespremenjene (razmerje je že v razponu). S to spremembo so usklajena
+ * tudi prosodna vodila: vprašanja dobijo MELODIJO (+3 Hz) brez pohitianja,
+ * prompt pa LLM usmerja k hitrosti ≤ 1,0.
  */
-const BASE_RATE_PCT = 5
+const BASE_RATE_PCT = 0
 
 /* ------------------------------------------------------------------ */
 /* MIKRO-JITTER TEMPA PO VRSTICI (±2 %)                                */

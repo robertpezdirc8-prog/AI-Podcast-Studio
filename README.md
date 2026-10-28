@@ -29,9 +29,9 @@ AI Podcast Studio je splet aplikacija, ki iz ene teme samostojno napiše dvogost
 - **Prekrivni vzkliki (backchanneli)** — "Vau!", "Aha", "Ja točno tako…" pod govorom (−3 dB)
 - **Stereo pan** — Rok levo, Petra desno (prava radijska postavitev)
 - **Mikro-jitter** — rahla variacija tempa/obraza za ne-mehanični ritem
-- **Tempo-lok** — ciljna artikulacija (≈ 5,9 zlog/s) z osnovnim tempom +5 %
+- **Tempo-lok** — sproščena artikulacija (≈ 5,7 zlog/s) na naravni Edge prozodiji (osnovni tempo 0 % — po povratni informaciji »preveč trdi govor«; uvod rahlo živahnejši, zaključek počasnejši in tišji)
 - **Glasbena podlaga prelokov z duckingom** — determinističen Aadd9 pad pod poglavitnimi prelomi; `sidechaincompress` ga usede ≈15 dB pod govorom, v pavzi pa "za dihe" nazaj (radio veriga: mastering samo na govoru → glasba po masteringu na absolutni ravni)
-- **Mastering** — dvoprehodni **linearni** loudnorm (brez pumpanja), highpass 75 Hz, blagi kompresor; 24 kHz cevovod
+- **Mehka obdelava** — dvoprehodni **linearni** loudnorm (brez pumpanja), highpass 75 Hz, okrepljen de-esser, blag kompresor (ratio 1,4, počasen napad 45 ms = mehak dotik), mehki limiter; 24 kHz cevovod
 
 ### 📺 Karaoke predvajalnik
 - **ON AIR** indikator, oznaka aktivne vrstice, poglavjski čipi, valovni obrazec
