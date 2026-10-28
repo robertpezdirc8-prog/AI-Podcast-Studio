@@ -62,7 +62,8 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* Task 52: jantarni fokus (amber-500) — ring/outline enoten znamčni barvi */
+  --ring: oklch(0.769 0.152 70.08);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -96,7 +97,8 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  /* Task 52: jantarni fokus (amber-500) — ring/outline enoten znamčni barvi */
+  --ring: oklch(0.769 0.152 70.08);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -118,6 +120,42 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  /*
+   * Dostopnost (Task 52): dosleden jantarni fokusni obroč za TIPKOVNICO.
+   * Selektorji z specifičnostjo (0,1,0) premagajo `* { outline-ring/50 }`
+   * neodvisno od vrstnega reda v prevedenem CSS; samo :focus-visible —
+   * miškin klik ne prižge obroča. shadcn komponente (outline-none + ring)
+   * dobijo jantar prek --ring spremenljivke zgoraj.
+   */
+  a:focus-visible,
+  button:focus-visible,
+  [role='button']:focus-visible,
+  [role='slider']:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  summary:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid rgb(245 158 11 / 0.9);
+    outline-offset: 2px;
+  }
+}
+
+/*
+ * Dostopnost (Task 52): uporabniki z zmanjšanim gibanjem (prefers-reduced-motion)
+ * — utripanja, vrtenja in prehodi se umirijo; vmesnik ostane popolnoma uporaben
+ * (spinnerji so vidni, le ne krožijo; framer-motion prehode ta pravilo ne
+ * pokriva — tisti so kratki in ne-epileptogeni).
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
