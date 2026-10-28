@@ -565,24 +565,25 @@ export function saveDeviceSound(volume: number, muted: boolean): void {
   }
 }
 
-/** Indeks hitrosti predvajanja (0 = prva; napake → 0). */
-export function loadDeviceRateIndex(max: number): number {
+/** Shranjena hitrost predvajanja naprave (število; 0 = ni shranjena/neveljavna). */
+export function loadDeviceRate(): number {
   try {
     if (typeof window === 'undefined') return 0;
     const raw = localStorage.getItem(DEVICE_RATE_KEY);
     if (raw === null) return 0;
     const value = Number(raw);
-    return Number.isInteger(value) && value >= 0 && value < max ? value : 0;
+    return Number.isFinite(value) && value > 0 ? value : 0;
   } catch {
     return 0;
   }
 }
 
-/** Shrani indeks hitrosti predvajanja. */
-export function saveDeviceRateIndex(index: number): void {
+/** Shrani hitrost predvajanja naprave (vrednost, ne indeks — seznami se
+ *  razlikujejo med predvajalnikoma: studio 0,75–3×, delitev 1–2×). */
+export function saveDeviceRate(value: number): void {
   try {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(DEVICE_RATE_KEY, String(index));
+    localStorage.setItem(DEVICE_RATE_KEY, String(value));
   } catch {
     // ignoriraj
   }

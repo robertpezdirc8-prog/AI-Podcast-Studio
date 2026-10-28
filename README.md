@@ -19,6 +19,8 @@ AI Podcast Studio je splet aplikacija, ki iz ene teme samostojno napiše dvogost
 
 ### 🎛️ Studio (karaoke urejevalnik)
 - **Trojni pogled (tabi)** — Scenarij (karaoke + urejanje + iskanje) · Zapiski (show notes) · **Dramaturgija** (statistika epizode: realno trajanje, besede, poglavja, ravnovesje govorcev, 7 radijskih pregledov) — čipi poglavij in predvajalnik ostanejo vedno vidni
+- **Glasnost + utislitev veljata za VSE** — glavni zvok, uvodna/zaključna melodija, room tone prelokov in prekrivni vzklik (prej je utišanje pustilo melodijo glasno); drsnik glasnosti na namizju
+- **Nastavitve naprave ostanejo** — glasnost, utislitev in hitrost predvajanja preživijo ponovni obisk in tečejo med studiem ter javno stranjo (vrednost hitrosti; neznana vrednost pade na privzeto posameznega predvajalnika)
 
 ### 🎚️ Produkcija (miks)
 - **Pavze in dramaturgija** — členki po zarezi, poglavitne pavze, mikropavze

@@ -34,10 +34,10 @@ import { Slider } from '@/components/ui/slider';
 import {
   clearSharePosition,
   fetchSharedEpisode,
-  loadDeviceRateIndex,
+  loadDeviceRate,
   loadDeviceSound,
   loadSharePosition,
-  saveDeviceRateIndex,
+  saveDeviceRate,
   saveDeviceSound,
   saveSharePosition,
   type ShareEpisode,
@@ -81,10 +81,14 @@ export function ShareView({ token, onExit }: ShareViewProps) {
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   /* Poslušalčevo nadaljevanje + nastavitve naprave (Task 58). Delitveni
      pogled se upodobi SAMO odjemalsko (HomeShell žeton bere v učinku), zato
-     lenobi leni initializerji varno berejo localStorage — brez hidracijskega
+     leni initializerji varno berejo localStorage — brez hidracijskega
      neujemlja in brez setState v učinku. Na <audio> vrednosti uveljavimo
      ob onLoadedMetadata, ker element med nalaganjem podatkov še ne obstaja. */
-  const [rateIdx, setRateIdx] = useState(() => loadDeviceRateIndex(RATES.length));
+  const [rateIdx, setRateIdx] = useState(() => {
+    const saved = loadDeviceRate(); // vrednost (Task 59) —studio lahko shrani 0,75/2,5/3
+    const idx = (RATES as readonly number[]).indexOf(saved);
+    return idx >= 0 ? idx : 0;
+  });
   const [volume, setVolume] = useState(() => loadDeviceSound().volume);
   const [muted, setMuted] = useState(() => loadDeviceSound().muted);
   /** Nadaljevalna pozicija za obvestilo (null = ni/že skrito). */
@@ -188,7 +192,7 @@ export function ShareView({ token, onExit }: ShareViewProps) {
 
   const changeRate = useCallback((idx: number) => {
     setRateIdx(idx);
-    saveDeviceRateIndex(idx); // nastavitev naprave (Task 58)
+    saveDeviceRate(RATES[idx]); // nastavitev naprave (Task 58/59 — vrednost)
     const audio = audioRef.current;
     if (audio) {
       audio.playbackRate = RATES[idx];
@@ -484,7 +488,10 @@ export function ShareView({ token, onExit }: ShareViewProps) {
                 const sound = loadDeviceSound();
                 audio.volume = sound.volume;
                 audio.muted = sound.muted;
-                audio.playbackRate = RATES[loadDeviceRateIndex(RATES.length)];
+                const savedRate = loadDeviceRate();
+                audio.playbackRate = (RATES as readonly number[]).includes(savedRate)
+                  ? savedRate
+                  : RATES[0];
                 // Nadaljuj od mesta ustavitve (Task 58) — BREZ samodejnega
                 // predvajanja; prikaže se obvestilo z »začni od začetka«.
                 // Pozicije blizu konca (< 10 s) preskočimo — nič za poslušat.

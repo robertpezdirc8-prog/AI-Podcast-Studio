@@ -85,6 +85,10 @@ import {
   fetchEpisodePeaks,
   loadLocalPosition,
   saveLocalPosition,
+  loadDeviceRate,
+  loadDeviceSound,
+  saveDeviceRate,
+  saveDeviceSound,
   moveLine,
   updateEpisodeProgress,
   updateLineText,
@@ -113,7 +117,7 @@ import { AskHostsCard } from './ask-hosts-card';
 import { ChaptersRow, type ChapterChip } from './chapters-row';
 import { DramaturgyReport } from './dramaturgy-report';
 import { Equalizer } from './equalizer';
-import { PlayerBar, type SleepTimerChoice } from './player-bar';
+import { PlayerBar, RATES, type SleepTimerChoice } from './player-bar';
 import { downloadQuoteCard } from './quote-card';
 import { dimIfNoMatch, foldText, HighlightedText, ScenarioSearchBar } from './scenario-search';
 import { WordKaraoke } from './word-karaoke';
@@ -244,8 +248,17 @@ export function EpisodeStudio({
   const [peaksData, setPeaksData] = useState<PeaksResponse | null>(null);
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
-  const [rate, setRate] = useState(1);
-  const [muted, setMuted] = useState(false);
+  /* Nastavitve naprave (Task 59): glasnost/utislitev/hitrost ostanejo med
+     obiski. Studio se upodobi SAMO odjemalsko (HomeShell), zato so leni
+     initializerji varni (brez hidracijskega neujemlja). Hitrost je VREDNOST —
+     če je delitev shranila 1,25×, jo studio uporabi; 2,5× studio pozna, 1,25
+     pa ne obstaja v njegovem seznamu → paden nazaj na 1×. */
+  const [rate, setRate] = useState(() => {
+    const saved = loadDeviceRate();
+    return (RATES as readonly number[]).includes(saved) ? saved : 1;
+  });
+  const [muted, setMuted] = useState(() => loadDeviceSound().muted);
+  const [volume, setVolume] = useState(() => loadDeviceSound().volume);
   const [exporting, setExporting] = useState<ExportKind | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [clipBusy, setClipBusy] = useState<{ lineId: string; kind: ClipKind } | null>(null);
@@ -303,6 +316,8 @@ export function EpisodeStudio({
   rateRef.current = rate;
   const mutedRef = useRef(muted);
   mutedRef.current = muted;
+  const volumeRef = useRef(volume);
+  volumeRef.current = volume;
   const durationsRef = useRef(durations);
   durationsRef.current = durations;
   const episodeIdRef = useRef(episode.id);
@@ -458,6 +473,10 @@ export function EpisodeStudio({
       el.onerror = done;
       introPhaseRef.current = kind;
       setJinglePhase(kind);
+      // Melodija sledi utišanju/glasnosti naprave (Task 59) — brez tega bi
+      // utišanje pustilo uvodno melodijo glasno.
+      el.volume = volumeRef.current;
+      el.muted = mutedRef.current;
       // Varnostna mreža (glavni sprožilec je onended; melodiji sta 2,2 / 3,0 s)
       introTimerRef.current = setTimeout(done, 9000);
       // Melodija sredinsko (v izvozu dual-mono) + tekoč kontekst za pan
@@ -511,6 +530,10 @@ export function EpisodeStudio({
       gapAudio.src = gapSrc;
       gapAudio.onended = finishGap;
       gapAudio.onerror = finishGap; // manjkajoča datoteka → takoj naprej
+      // Room tone sledi utišanju/glasnosti naprave (Task 59) — hitrost NE:
+      // trajanje pavze je del časovnice in se ne skrajša pri 2×.
+      gapAudio.volume = volumeRef.current;
+      gapAudio.muted = mutedRef.current;
       gapTimerRef.current = setTimeout(finishGap, gapMs + 250); // varnostna mreža
       // Room tone ostane SREDINSKO (v izvozu je bed dual-mono) + obnovi kontekst
       setElementPan(gapAudio, 0);
@@ -592,6 +615,8 @@ export function EpisodeStudio({
         }
       }
       ghost.playbackRate = rateRef.current;
+      ghost.volume = volumeRef.current;
+      ghost.muted = mutedRef.current;
       ghost.ontimeupdate = () => setCurrentTime(ghost.currentTime);
       ghost.onended = handleGhostEnded;
       ghost.onerror = handleGhostEnded; // napaka → naprej, kot da je doigral
@@ -829,6 +854,7 @@ export function EpisodeStudio({
       audio.currentTime = 0;
     }
     audio.playbackRate = rateRef.current;
+    audio.volume = volumeRef.current;
     audio.muted = mutedRef.current;
     // Stereo umestitev govorca te vrstice — route/preklop ŠE PRED play() (element
     // je pavziran → brez zvočnega preloma; kontekst teče po aktivaciji strani)
@@ -1343,7 +1369,28 @@ export function EpisodeStudio({
 
   const changeRate = useCallback((value: number) => {
     setRate(value);
+    saveDeviceRate(value); // nastavitev naprave (Task 59)
     if (audioRef.current) audioRef.current.playbackRate = value;
+  }, []);
+
+  /** Glasnost na VSEH živih elementih (glavni, room tone, vzklik, melodija). */
+  const changeVolume = useCallback((values: number[]) => {
+    const next = Math.min(1, Math.max(0, values[0] ?? 1));
+    volumeRef.current = next;
+    setVolume(next);
+    // Vlečenje drsnika iz utišanega stanja povrne zvok (splošna navada).
+    const unmute = next > 0 && mutedRef.current;
+    if (unmute) {
+      mutedRef.current = false;
+      setMuted(false);
+    }
+    for (const el of [audioRef.current, gapAudioRef.current, introAudioRef.current]) {
+      if (el) {
+        el.volume = next;
+        if (unmute) el.muted = false;
+      }
+    }
+    saveDeviceSound(next, unmute ? false : mutedRef.current);
   }, []);
 
   /** Skok ±10 s znotraj trenutne vrstice; čez konec → naslednja vrstica. */
@@ -1407,7 +1454,13 @@ export function EpisodeStudio({
   const toggleMute = useCallback(() => {
     setMuted((prev) => {
       const next = !prev;
-      if (audioRef.current) audioRef.current.muted = next;
+      mutedRef.current = next;
+      // Utišanje velja za VSE žive elemente (Task 59) — prej je melodija/
+      // room tone/vzklik glasno vzklikali tudi ob utišanju.
+      for (const el of [audioRef.current, gapAudioRef.current, introAudioRef.current]) {
+        if (el) el.muted = next;
+      }
+      saveDeviceSound(volumeRef.current, next);
       return next;
     });
   }, []);
@@ -2778,6 +2831,8 @@ export function EpisodeStudio({
         total={totalDuration}
         rate={rate}
         muted={muted}
+        volume={volume}
+        onVolumeChange={changeVolume}
         sleepRemainingMs={sleepRemainingMs}
         sleepMode={
           sleepTimer === null

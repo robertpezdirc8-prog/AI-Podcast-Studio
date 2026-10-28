@@ -33,7 +33,8 @@ import { cn } from '@/lib/utils';
 import { Equalizer } from './equalizer';
 import { Waveform } from './waveform';
 
-const RATES = [0.75, 1, 1.25, 1.5, 2, 2.5, 3] as const;
+/** Hitrosti predvajanja v studiu (širši razpon kot na delitveni strani). */
+export const RATES = [0.75, 1, 1.25, 1.5, 2, 2.5, 3] as const;
 const SKIP_SECONDS = 10;
 
 /** Izbira ure za spanje: izklop, pavza na koncu epizode ali odštevalnik v minutah. */
@@ -77,6 +78,10 @@ interface PlayerBarProps {
   onSkip: (seconds: number) => void;
   onRateChange: (rate: number) => void;
   onToggleMute: () => void;
+  /** Glasnost 0..1 (nastavitev naprave, Task 59). */
+  volume: number;
+  /** Sprememba glasnosti (Radix onValueChange — values[0]). */
+  onVolumeChange: (values: number[]) => void;
   /**
    * Oblika valovanja (Task 42): stolpci vrhov 0..1 za mini-mapo. `null` =
    * pade nazaj na navaden drsnik (podatki še ne znani / napaka).
@@ -216,6 +221,8 @@ export function PlayerBar({
   onSkip,
   onRateChange,
   onToggleMute,
+  volume,
+  onVolumeChange,
   waveform = null,
   onSeekMs,
   onWaveformScrub,
@@ -353,8 +360,23 @@ export function PlayerBar({
               onClick={onToggleMute}
               aria-label={muted ? 'Vklopi zvok' : 'Utišaj zvok'}
             >
-              {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+              {muted || volume === 0 ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
             </Button>
+            {/* Glasnost (Task 59): samo namizje — na mobitelu glasnost ureja
+                sistem (iOS vseeno ignorira audio.volume). */}
+            <div className="hidden shrink-0 items-center sm:flex">
+              <Slider
+                value={[muted ? 0 : volume]}
+                min={0}
+                max={1}
+                step={0.05}
+                onValueChange={onVolumeChange}
+                disabled={!hasAudio}
+                aria-label="Glasnost"
+                aria-valuetext={`${Math.round((muted ? 0 : volume) * 100)} %`}
+                className="w-20 cursor-pointer [&_[data-slot=slider-range]]:bg-amber-500 [&_[data-slot=slider-thumb]]:border-amber-500 [&_[data-slot=slider-thumb]]:bg-zinc-950 [&_[data-slot=slider-track]]:bg-zinc-800"
+              />
+            </div>
           </div>
         </div>
       </div>
