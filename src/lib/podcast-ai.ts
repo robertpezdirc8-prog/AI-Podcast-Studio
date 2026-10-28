@@ -1000,8 +1000,15 @@ async function polishAudioToWav(
   // De-esser (Task 65 rahlo okrepljen: i 0,35 → 0,40) — sibilantnost je
   // eden glavnih virov »trdega« zvoka; 0,40 še ne šepa
   chain.push('deesser=i=0.40:m=0.60:f=0.5')
-  chain.push('equalizer=f=3000:width_type=q:w=1.4:g=-2')
-  chain.push('treble=g=-1.8:f=8500')
+  /*
+   * MEHČANJE IZGOVARJAVE (Task 65/66 — »trdo se vedno izgovarjava«):
+   * ostrina soglasnikov živi v pasu 2–6 kHz. 3 kHz −3 dB (Task 65: −2),
+   * dodaten 5,5 kHz −1,5 dB (sibilanti/»k«, »t« rob), treble −2,2 dB
+   * (Task 65: −1,8). Nizki srednjci 210 Hz +1,3 dB ostanejo (toplot).
+   */
+  chain.push('equalizer=f=3000:width_type=q:w=1.4:g=-3')
+  chain.push('equalizer=f=5500:width_type=q:w=1.2:g=-1.5')
+  chain.push('treble=g=-2.2:f=8500')
   chain.push('equalizer=f=210:width_type=q:w=0.9:g=1.3')
   /*
    * Blaga kompresija (raziskava: premočno stiskanje kratkih TTS odsekov =
@@ -1020,6 +1027,16 @@ async function polishAudioToWav(
   // uporablja se za mikrorazlike glasnosti med backchannel takei
   if (postGainDb !== 0) chain.push(`volume=${postGainDb.toFixed(2)}dB`)
   chain.push(`aresample=${inSampleRate}`)
+  /*
+   * STISKANJE NOTRANJIH PAVZ (Task 66 — »predolgo tišina med sogovorniki«):
+   * Edge vdaja ZNOTRAJ vrstice velike pavze na stavčnih mejah (izmerjeno 0,4–1,0 s!
+   * — silencedetect na realnih WAV-ih), kar se v dialogu počuti kot mrtva tišina
+   * med sogovorniki. stop_periods=-1 skrajša VSAKO notranjo tišino na največ
+   * stop_duration (0,32 s = naravna stavčna pavza v slovenskem dialogu); krajše
+   * pavze in dihi (nad −40 dB) ostanejo nedotaknjeni. Robovi se odrezajo ŠELE
+   * za tem (spodaj), room tone pa zapolni preostanek → dialog teče naprej.
+   */
+  chain.push('silenceremove=stop_periods=-1:stop_duration=0.32:stop_threshold=-40dB')
   // ODREŽI vgrajeno tišino na robovih (Edge doda ~0,2 s na začetku in ~0,6–1,0 s
   // na koncu; ohranimo le naravno mikroobrobo 0,05/0,09 s — nato izvoz doda
   // kontekstno pavzo: menjava govorca / isti govorec / poglavje)
@@ -1111,7 +1128,7 @@ async function piperSynthesize(
   if (!modelFile) throw new Error(`Ni Piper modela za glas ${voice}`)
   const modelPath = path.join(VOICES_DIR, modelFile)
   // Piper length_scale ∝ 1/tempo: isti osnovni tempo kot Edge (BASE_RATE_PCT,
-  // Task 65: 0 % → ×1,00), da je fallback tempa skladen z glavno potjo.
+  // Task 66: −3 % → ×1,031), da je fallback tempa skladen z glavno potjo.
   const lengthScale = Math.min(2, Math.max(0.5, 1 / (clampSpeed(speed) * (1 + BASE_RATE_PCT / 100))))
 
   const pitch = PIPER_PITCH[voice] ?? 1.0
@@ -1240,16 +1257,18 @@ const BC_UNDER_DB = -3
  * razpona (~5,7) se VZEMA kot sproščena, topla izmenjava (NRK/HRT voditelji
  * v dialogu), zgornja pa kot napovedovalska naglica.
  *
- * Rešitev (Task 65): osnovni tempo 0 % (naravna Edge prozodija) → čista
- * AR ~5,7 (spodnja polovica razpona = sproščeno), SR ~4,2, delež pavz
- * ostaja v profesionalnem razponu. Vzkliki (takeovi) ostanejo izključeni —
+ * Rešitev (Task 65/66): osnovni tempo −3 % (rahlo pod naravno Edge prozodijo —
+ * uporabnik je po 0 % še vedno poročal »trdo izgovarjavo«; z −3 % je čista
+ * AR ~5,55 zlog/s = udobno sproščeno, jitter ±2 % ohrani živahnost →
+ * dejanski tempo vrstic −1…−5 %). Vzkliki (takeovi) ostanejo izključeni —
  * njihova hitrost je kalibrirana posebej; relativna dramaturgija loka
  * (uvod hitreje, zaključek počasneje) ostane čez osnovo. Pavze NAMERNO
  * nespremenjene (razmerje je že v razponu). S to spremembo so usklajena
  * tudi prosodna vodila: vprašanja dobijo MELODIJO (+3 Hz) brez pohitianja,
- * prompt pa LLM usmerja k hitrosti ≤ 1,0.
+ * prompt pa LLM usmerja k hitrosti ≤ 1,0. Notranje pavze ZNOTRAJ vrstic
+ * pa stiska poseben filter (silenceremove stop_periods=-1, glej polish).
  */
-const BASE_RATE_PCT = 0
+const BASE_RATE_PCT = -3
 
 /* ------------------------------------------------------------------ */
 /* MIKRO-JITTER TEMPA PO VRSTICI (±2 %)                                */

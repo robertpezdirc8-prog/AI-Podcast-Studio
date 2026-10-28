@@ -29,9 +29,10 @@ AI Podcast Studio je splet aplikacija, ki iz ene teme samostojno napiše dvogost
 - **Prekrivni vzkliki (backchanneli)** — "Vau!", "Aha", "Ja točno tako…" pod govorom (−3 dB)
 - **Stereo pan** — Rok levo, Petra desno (prava radijska postavitev)
 - **Mikro-jitter** — rahla variacija tempa/obraza za ne-mehanični ritem
-- **Tempo-lok** — sproščena artikulacija (≈ 5,7 zlog/s) na naravni Edge prozodiji (osnovni tempo 0 % — po povratni informaciji »preveč trdi govor«; uvod rahlo živahnejši, zaključek počasnejši in tišji)
+- **Tempo-lok** — sproščena artikulacija (≈ 5,6 zlog/s, osnovni tempo −3 % — po povratnih informacijah »preveč trdi govor« in »trdo se vedno izgovarjava«; uvod rahlo živahnejši, zaključek počasnejši in tišji)
+- **Stiskanje notranjih pavz** — Edge vdaja znotraj vrstice pavze do 1 s na stavčnih mejah; filter jih skrajša na največ 0,32 s (dihi ostanejo) → dialog med sogovorniki teče brez mrtve tišine
 - **Glasbena podlaga prelokov z duckingom** — determinističen Aadd9 pad pod poglavitnimi prelomi; `sidechaincompress` ga usede ≈15 dB pod govorom, v pavzi pa "za dihe" nazaj (radio veriga: mastering samo na govoru → glasba po masteringu na absolutni ravni)
-- **Mehka obdelava** — dvoprehodni **linearni** loudnorm (brez pumpanja), highpass 75 Hz, okrepljen de-esser, blag kompresor (ratio 1,4, počasen napad 45 ms = mehak dotik), mehki limiter; 24 kHz cevovod
+- **Mehka obdelava** — dvoprehodni **linearni** loudnorm (brez pumpanja), highpass 75 Hz, okrepljen de-esser, mehčanje ostrine soglasnikov (3 kHz −3 dB, 5,5 kHz −1,5 dB, treble −2,2 dB), blag kompresor (ratio 1,4, počasen napad 45 ms = mehak dotik), mehki limiter; 24 kHz cevovod
 
 ### 📺 Karaoke predvajalnik
 - **ON AIR** indikator, oznaka aktivne vrstice, poglavjski čipi, valovni obrazec
