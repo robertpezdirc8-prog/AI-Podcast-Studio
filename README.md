@@ -25,8 +25,10 @@ AI Podcast Studio je splet aplikacija, ki iz ene teme samostojno napiše dvogost
 
 ### 🎚️ Produkcija (miks)
 - **Pavze in dramaturgija** — členki po zarezi, poglavitne pavze, mikropavze
+- **Odrasel ton (Task 67)** — prompt piše scenarije kot izkušena podcast ekipa: mirene reakcije ("Mhm.", "Tako je.", "Zanimivo."), brez otroških vzklikov ("Vau!", "Ma daj!") in mladinskega slanga; Rok −4 Hz / Petra −3 Hz / Srečko −2 Hz = topljejši, odrasel karakter glasov
+- **Varovalka pisem** — ne-latinski znaki (kitajsko, cirilica …) se iz scenarijev samodejno odstranijo, preden TTS vidi besedilo
 - **Vdih** — naravni vdihi pred daljšimi mislimi
-- **Prekrivni vzkliki (backchanneli)** — "Vau!", "Aha", "Ja točno tako…" pod govorom (−3 dB)
+- **Prekrivni vzkliki (backchanneli)** — "Mhm.", "Tako je.", "Točno tako…" pod govorom (−3 dB)
 - **Stereo pan** — Rok levo, Petra desno (prava radijska postavitev)
 - **Mikro-jitter** — rahla variacija tempa/obraza za ne-mehanični ritem
 - **Tempo-lok** — sproščena artikulacija (≈ 5,6 zlog/s, osnovni tempo −3 % — po povratnih informacijah »preveč trdi govor« in »trdo se vedno izgovarjava«; uvod rahlo živahnejši, zaključek počasnejši in tišji)

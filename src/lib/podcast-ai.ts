@@ -73,13 +73,18 @@ const EDGE_VOICE_MODELS: Record<string, string> = {
  * oblika spektra in trajanje ostanejo naravni, BREZ kovinskih artefaktov,
  * ki jih za seboj pusti ffmpeg asetrate/atempo premik (to je bil vzrok
  * "trdega" zvoka Jakoba/Matjaža). ±12 Hz ≈ ±2 poltona pri moškem glasu.
+ *
+ * Task 67 (»otroška predstava«): višji pitch = manjši/mlajši zaznani govorec.
+ * Rok/Petra/Srečko dobijo RAHLO NIŽJO osnovo (−4/−3/−2 Hz) — toplejši,
+ * odrasel karakter; jakob ostane namenoma višji (energični lik),
+ * matjaž še naprej najnižji (umirjeni lik).
  */
 const EDGE_PITCH_HZ: Record<string, string> = {
-  rok: '+0Hz',
-  petra: '+0Hz',
+  rok: '-4Hz',
+  petra: '-3Hz',
   jakob: '+12Hz',
   matjaz: '-12Hz',
-  srecko: '+0Hz',
+  srecko: '-2Hz',
 }
 
 // Edge TTS izhaja MP3 24 kHz mono
@@ -258,6 +263,13 @@ function clampSpeed(n: unknown, fallback = 1.0): number {
 function cleanSpokenText(raw: string): string {
   return raw
     .replace(/[*_#`~]/g, '')
+    /*
+     * Varovalka (Task 67): LLM včasih uja znake ne-latinskih pisem (kitajsko
+     * 电器, cirilica, kana …) sredi slovenskega besedila — TTS jih bodisi preskoči
+     * bodisi pokvari vrstico. Obdržimo LE latinsko pismo (vključno s čšžđ in
+     * naglasi), ločila, številke in presledke; vse ostalo odstranimo.
+     */
+    .replace(/[^\p{Script=Latin}\p{P}\p{N}\s]+/gu, '')
     .replace(/\s+/g, ' ')
     .replace(/^["'\u201c\u201e]+|["'\u201d\u201c]+$/g, '')
     .trim()
@@ -287,7 +299,7 @@ export async function generatePodcastScript(opts: {
 
   const system = [
     'You are a world-class podcast showrunner and scriptwriter.',
-    `You write tight, entertaining podcast scripts for ${castSpec} that sound EXACTLY like real people talking — spontaneous, funny, with natural rhythm.`,
+    `You write tight, entertaining podcast scripts for ${castSpec} that sound EXACTLY like experienced ADULT podcast hosts — confident, warm, measured, with dry wit. Think real interview shows, NOT a children's program: NO over-excitement, no bubbly exclamations every line, no teen slang.`,
     `CRITICAL: ${withGuest ? 'the speakers COLLABORATE — hosts and the guest constantly react to each other' : 'the two hosts COLLABORATE — they constantly react to each other'}, answer questions, build on each other\'s points, use each other\'s names and short backchannel reactions. NEVER write two monologues pasted one after another.`,
     'You NEVER sound like a newsreader, a textbook, or a translation.',
     'Respond with VALID JSON ONLY. No markdown, no code fences, no commentary.',
@@ -313,20 +325,20 @@ export async function generatePodcastScript(opts: {
     `- VEČINA vrstic naj ima 1–2 stavka (do ~170 znakov). Če je treba razložiti kaj daljšega, RAZDELITE razlago na izmenjave — drugi vmes vpraša, dvomi ali dopolni.`,
     `- Če je vrstica vseeno dolga (do 260 znakov), jo sestavi iz DVEH polovic z naravno mejo okoli sredine (kratek stavek, nato nadaljevanje prek "in/pa/ker/ampak/ki" ali vejice) — govorcu omogoči naraven vdih na polovici povedi.`,
     `- Nikoli ne daj istemu govorcu dveh dolgih vrstic zapored. Če mora nadaljevati, naj druga oseba vmes vstavi kratko vprašanje ali reakcijo.`,
-    `- Vsakih ~3–5 vrstic dodaj SAMOSTOJNO vrstico-reakcijo drugega ${withGuest ? 'udeleženca' : 'voditelja'} (backchannel, 1–5 besed, vedno s končnim ločilom): "Mhm.", "Res?", "Aha, glej to!", "Vau!", "Točno tako.", "Ne morem verjeti!", "Ma daj!" — pravi poslušalci vzklikajo povprečno 3–4-krat na minuto (raziskava dialognih korpusov: >40 % izmenjav).`,
-    `- Vsaj 3 reakcije naj bodo ČISTI KRAJŠI vzklik brez nadaljevanja (samo "Mhm." / "Res?" / "Vau!" / "Ma daj!") — takšna vrstica se v predvajalniku naravno PREKRije s prejšnjo povedjo, kar zveni kot resničen pogovor. Ostale reakcije naj se pričnejo s vzklikom, nato nadaljujejo z vprašanjem ali dopolnilom.`,
-    `- Vzkliki naj bodo PESTRI: nikoli dva enaka zaporedoma. Generični priklopniki ("Mhm.", "Aha.", "Ja.") pomenijo "nadaljuj, poslušam", specifični ("Vau!", "Res?", "Ne morem verjeti!") pa presenečenje nad vsebino.`,
+    `- Vsakih ~4–6 vrstic dodaj SAMOSTOJNO vrstico-reakcijo drugega ${withGuest ? 'udeleženca' : 'voditelja'} (backchannel, 1–5 besed, vedno s končnim ločilom): "Mhm.", "Tako je.", "Jasno.", "Zanimivo.", "Točno tako.", "Hm, dobro vprašanje.", "Nisem vedel." — odrasli voditelji se odzivajo mirno in samozavestno, ne kričijo od navdušenja.`,
+    `- 1–2 reakciji naj bosta ČISTI KRAJŠI vzklik brez nadaljevanja (samo "Mhm." / "Tako je." / "Jasno.") — takšna vrstica se v predvajalniku naravno PREKRije s prejšnjo povedjo. Ostale reakcije naj bodo mirne s sostavino ("Zanimivo — to pa podatek.", "Hm, ampak kaj pa …").`,
+    `- Reakcije naj bodo PESTRE a UMERJENE: nikoli dva enaka zaporedoma, NIČ kričavega ("Vau!", "Ma daj!", "Ne morem verjeti!") — presenečenje izrazi z besedami ("To pa nisem pričakoval."), ne z vzkliki.`,
     `- Dopusti prijazen naval/dopolnitev: en konča misel, drug takoj priklopi ("Ja, in še najboljše je…", "— točno, in zato je…").`,
     `- NE ponavljaj dobesedno tega, kar je drugi pravkar rekel, razen kratkega sklica nanj.`,
-    `- emotion naj odraža vlogo vrstice: vprašanje → "radovedno", šok reakcija → "šokiran", strinjanje/val → "navdušeno", razlaga → null ali "mirno".`,
+    `- emotion naj odraža vlogo vrstice: vprašanje → "radovedno", razlaga → "premišljeno" ali "mirno", strinjanje → "toplije", oster podatek → "resno". Nikoli pretirano ("šokiran", "navdušeno", "smeje se").`,
     ``,
     `PRAVILA ZA JEZIK:`,
-    `- Piši točno tako, kot ljudje RES govorijo: kratke, žive, energične stavke.`,
-    `- Preizkusi vsako vrstico na glas — če zveni kot novica, učbenik ali prevod, jo prepiši pogovorneje.`,
-    `- Vgradi naravne pogovorne besede in vmesnike: ja, no, pač, ful, res, veš, glej, poslušaj, okej, super, kr neki, dasi, v glavnem, predstavljaj si, sej veš.`,
+    `- Piši točno tako, kot izkušen odrasel pripoveduje sodelavcu: jasno, urejeno, z dieslovito pametjo — kratki stavki smejo biti viden, ampak težo nosi VSEBINA, ne krika in navdušenja.`,
+    `- Preizkusi vsako vrstico na glas — če zveni kot otroška oddaja, mladinski magazin ali reklama, jo prepiši zreleje; če zveni kot novica, učbenik ali prevod, pa pogovorneje.`,
+    `- Vgradi naravne pogovorne besede v UMERJENEM odmerku: no, pač, v glavnem, glej, poslušaj, sej, res, okej, pravzaprav, v bistvu. IZOGIBAJ se mladinskemu slangu ("ful", "kr neki", "dasi").`,
     `- Voditelja se naslavljata po imenu in se tikata.`,
     `- Pozdrav naj bo sproščen in topel (npr. "Živjo, dobrodošel nazaj!"), NE "Pozdravljeni, poslušalci".`,
-    `- Reakcije naj bodo pristne: "Res? Ne morem verjeti!", "To pa ni hudo!", "Ful noro!", "Ma daj!", "Sej veš kaj je najboljše?"`,
+    `- Reakcije naj bodo odrasle: "Zanimivo.", "To pa podatek.", "Hm, nisem vedel.", "Tako je.", "Dobro vprašanje."`,
     `- Piši pravilno (brez chat okrajšav kot "nč", "kva", "tm") — mora se lepo brati na glas.`,
     `- Slovnica mora biti pravilna (sklanjanje, časovanje) — pogovoren je STIL, ne slovnične napake.`,
     `- Za ritem uporabi INTERPUNKCIJO: pomišljaj (—) = hitra pavza sred povedi, tripike (…) = premislek, vejice = dih. TTS to spoštuje.`,
@@ -346,15 +358,15 @@ export async function generatePodcastScript(opts: {
       ? `- Pri gostu: voditelja = moško-ženski duo (rok + petra), gost Srečko = srecko. Gostova dramaturgija: voditelja ga predstavitiva v uvodu, ima ~20–30 % vseh vrstic (nikoli ne prevlada), prinese perspektivo "od zunaj" (primerjave z Hrvaško, poimenja iz svojih izkušenj), v vsakem poglavju vsaj enkrat spregovori, voditelja ga naslovita po imenu in mu zastavita vprašanji.`
       : `- Najboljša kombinacija je moško-ženski duo (rok + petra) — kot v pravih slovenskih podcastih. Imeni naj bodo primerna glasovoma (npr. Rok/Matej/Luka + Petra/Maja/Nina).`,
     `- Hitrost govora med 0.85 in 1.0 — nikoli nad 1.0; govor naj zveni sproščen in topel, ne nergav.`,
-    `- emotion: ena kratka pogovorna beseda za način govora (npr. navdušeno, radovedno, šokiran, smeje se, pretirano, zamišljeno) ali null.`,
+    `- emotion: ena kratka beseda za način govora (npr. radovedno, premišljeno, mirno, ironično, toplije, resno) ali null — brez pretiranega navdušenja.`,
     `- Vsak line.speaker MORA biti eno od imen ${withGuest ? 'udeležencev (tudi Srečko za gostove vrstice)' : 'voditeljev'}, line.voice/speed pa kopirata njegov glas/hitrost.`,
     ``,
-    `PRIMER ŽELJENEGA POGOVORNEGA TONA (samo za okus, ne kopiraj vsebine) — opazi, kako si vsaka replika ODGOVARJA na prejšnjo:`,
-    `~ "Živjo, dobrodošli nazaj! Danes pa imava ful dobro temo, res ti bo všeč."`,
-    `~ "Dajno, povej že! Koliko pa to sploh stane?"`,
-    `~ "Manj kot tri evre, Petra. Tri! Za vse, kar ti pravkar naštevam."`,
-    `~ "Ne morem verjeti! Ja, ampak — omenil si samo elektrono, kaj pa vzdrževanje?"`,
-    `~ "Aha, glej to! To pa nisem vedel. In kaj se je potem zgodilo?"`,
+    `PRIMER ŽELJENEGA ODRASLEGA TONA (samo za okus, ne kopiraj vsebine) — opazi, kako si vsaka replika ODGOVARJA na prejšnjo, brez kričanja:`,
+    `~ "Dobrodošli nazaj. Danes greva v temo, ki jo uporabljaš vsak dan — pa je verjetno še nikoli nimaš razstavljene."`,
+    `~ "Dajmo po vrsti: koliko tega sploh je?"`,
+    `~ "Pet odstotkov, Petra. Pet. In večina tega pride iz samo dveh stvari."`,
+    `~ "To je tisti podatek, ki ga večina preskoči. Ampak počasi — kaj točno pomeni 'izguba' tu?"`,
+    `~ "Hm, to pa nisem vedel. In kaj se je potem z njimi zgodilo?"`,
     ``,
     `JSON oblika točno takšna:`,
     `{"title": string, "hosts": [{"name": string, "voice": string, "speed": number}, {"name": string, "voice": string, "speed": number}${withGuest ? ', {"name": "Srečko", "voice": "srecko", "speed": number}' : ''}], "lines": [{"speaker": string, "voice": string, "speed": number, "emotion": string | null, "text": string, "chapter": string | null}]}`,
@@ -368,7 +380,7 @@ export async function generatePodcastScript(opts: {
       const completion = await zai.chat.completions.create({
         messages: [
           { role: 'assistant', content: system },
-          { role: 'user', content: attempt === 0 ? user : `${user}\n\nPONOVITEV — POPRAVI: 1) odgovori SAMO z JSON objektom, brez razlage; 2) med vrsticami dodaj vsaj 3 vrstice, ki so SAMO kratek vzklik brez nadaljevanja (npr. "Mhm.", "Res?", "Vau!", "Ma daj!") — takšna vrstica se v predvajalniku prekrije s prejšnjo povedjo; ostale reakcije naj se le pričnejo z vzklikom.` },
+          { role: 'user', content: attempt === 0 ? user : `${user}\n\nPONOVITEV — POPRAVI: 1) odgovori SAMO z JSON objektom, brez razlage; 2) med vrsticami dodaj 1–2 mirni vzkliki brez nadaljevanja (npr. "Mhm.", "Tako je.", "Jasno.") — takšna vrstica se v predvajalniku prekrije s prejšnjo povedjo; ne dodajaj kričavih vzklikov.` },
         ],
         thinking: { type: 'disabled' },
       })
@@ -1175,10 +1187,11 @@ async function piperSynthesize(
  */
 function prosodyBoostForText(text: string): { rateDelta: number; pitchDelta: number } {
   const t = text.trim()
-  if (isBackchannelText(t)) return { rateDelta: 6, pitchDelta: 4 }
+  if (isBackchannelText(t)) return { rateDelta: 6, pitchDelta: 3 }
   // Vprašanja: MELODIJA brez pohitianja (Task 65 — »preveč trdi govor«;
-  // +2 % rate je vprašanja tlakovalo — zdaj ostane le naravna višja intonacija)
-  if (t.endsWith('?')) return { rateDelta: 0, pitchDelta: 3 }
+  // +2 % rate je vprašanja tlakovalo) in brez čirkavih viškov (Task 67:
+  // +3 → +2 Hz — radovedna intonacija ostane, otroški ton ne)
+  if (t.endsWith('?')) return { rateDelta: 0, pitchDelta: 2 }
   return { rateDelta: 0, pitchDelta: 0 }
 }
 
@@ -1198,11 +1211,11 @@ function prosodyBoostForText(text: string): { rateDelta: number; pitchDelta: num
  * Glasnost = postGain PO loudnorm-u (loudnorm bi sicer izenačil razlike).
  */
 const BACKCHANNEL_TAKES: { rateDelta: number; pitchDelta: number; gainDb: number }[] = [
-  { rateDelta: 6, pitchDelta: 4, gainDb: 0 },    // privzet energični vzklik
-  { rateDelta: 10, pitchDelta: 7, gainDb: -0.5 }, // hitro in višje — navdušeno
+  { rateDelta: 6, pitchDelta: 3, gainDb: 0 },    // privzet energični vzklik (Task 67: pitch 4 → 3)
+  { rateDelta: 10, pitchDelta: 4, gainDb: -0.5 }, // hitro in rahlo višje (7 → 4 — brez čirkavosti)
   { rateDelta: 3, pitchDelta: 0, gainDb: -2 },    // umirjeno in tišeje — soglašanje
   { rateDelta: 7, pitchDelta: -3, gainDb: -1.5 }, // nižje, premišljeno "mhm"
-  { rateDelta: 12, pitchDelta: 5, gainDb: 0.5 },  // zelo kratko, živahno
+  { rateDelta: 12, pitchDelta: 3, gainDb: 0.5 },  // zelo kratko, živahno (5 → 3)
 ]
 
 /** Determinističen djb2 hash (positiven uint32) — skupen takeovom in jitterju. */
@@ -1314,7 +1327,7 @@ const ARC_NEUTRAL: EpisodeArcDelta = { rateDelta: 0, pitchDelta: 0, gainDb: 0 }
 export function episodeArcFor(index: number, total: number): EpisodeArcDelta {
   if (total <= 1) return ARC_NEUTRAL
   const p = Math.min(1, Math.max(0, index / (total - 1)))
-  if (p < 0.12) return { rateDelta: 2, pitchDelta: 1, gainDb: 0 }
+  if (p < 0.12) return { rateDelta: 2, pitchDelta: 0, gainDb: 0 }
   if (p > 0.85) return { rateDelta: -3, pitchDelta: -2, gainDb: -0.8 }
   return ARC_NEUTRAL
 }

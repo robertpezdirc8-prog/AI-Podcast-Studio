@@ -2,18 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { VOICE_IDS, isVoiceId, ttsToFile } from '@/lib/podcast-ai'
 
 const PREVIEW_TEXTS: Record<string, string> = {
-  rok: 'Živjo, jaz sem Rok! Naravni moški glas iz Ljubljane — z mano bo podcast zvenel kot iz pravega studia.',
-  petra: 'Živjo, jaz sem Petra! Sem naravni ženski glas — vesela sem, da lahko vodiva podcast skupaj!',
+  rok: 'Živjo, jaz sem Rok. Naravni moški glas iz Ljubljane — z mano bo podcast zvenel kot iz pravega studia.',
+  petra: 'Živjo, jaz sem Petra. Naravni ženski glas — vodiva podcast, ki bo poslušalcem všeč.',
   artur:
-    'Živjo, jaz sem Artur! Moj glas prihaja prav iz slovenskega studia. Dajva narediva ful dober podcast!',
+    'Živjo, jaz sem Artur. Moj glas prihaja prav iz slovenskega studia. Narediva res dober podcast.',
   jakob:
-    'Živjo, jaz sem Jakob! Tisti višji in energičen glas — ful sem navdušen, dajva se v to takoj!',
+    'Živjo, jaz sem Jakob. Tisti višji in energičen glas — dajva se v to takoj!',
   matjaz:
     'Živjo, jaz sem Matjaž. Mirni in umirjeni ton — to je moja niša. Vsaka stvar dobi svoj čas.',
   srecko:
-    'Živjo, jaz sem Srečko! Gost sem vam iz Hrvaške — ajme, ful sem razposajen! Dajva narediva dober podcast!',
-  en: "Hey! This is my voice on the AI Podcast Studio. Let's record an awesome episode together!",
+    'Živjo, jaz sem Srečko, gost vam sem iz Hrvaške. Dajva narediva dober podcast.',
+  en: "Hey, this is my voice on the AI Podcast Studio. Let's record a great episode together.",
 }
+
+// Predogledi se keširajo na disku — po spremembi besedil invalidiramo stare verzije.
+const PREVIEW_CACHE_VERSION = 'v2'
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,7 +30,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const filename = `preview_${voice}.wav`
+    const filename = `preview_${voice}_${PREVIEW_CACHE_VERSION}.wav`
     await ttsToFile(PREVIEW_TEXTS[voice] ?? PREVIEW_TEXTS.artur, voice, 1.0, filename)
 
     return NextResponse.json({ audioPath: `/api/audio/${filename}` })
