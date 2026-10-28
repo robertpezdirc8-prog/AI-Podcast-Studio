@@ -84,7 +84,7 @@ export function AskHostsCard({ onAsk }: AskHostsCardProps) {
           maxLength={500}
           disabled={pending}
           aria-label="Tvoje vprašanje za voditelja"
-          className="h-10 border-zinc-800 bg-zinc-950/60 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
+          className="h-10 border-zinc-800 bg-zinc-950/60 text-zinc-100 placeholder:text-zinc-400 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
         />
         <Button
           size="icon"
@@ -111,7 +111,7 @@ export function AskHostsCard({ onAsk }: AskHostsCardProps) {
           <Equalizer active bars={4} className="h-4 shrink-0" />
           <div className="min-w-0 flex-1 text-sm">
             <span className="font-medium text-amber-200">Voditelja prebereta vprašanje …</span>
-            <span className="ml-1.5 text-xs tabular-nums text-zinc-500">
+            <span className="ml-1.5 text-xs tabular-nums text-zinc-400">
               {elapsed} s · to lahko traja do 60 s
             </span>
           </div>

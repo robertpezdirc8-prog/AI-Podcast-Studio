@@ -190,7 +190,7 @@ function EpisodeCard({
         className="mt-auto flex items-center justify-between gap-2 border-t border-zinc-800/70 pt-3"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex min-w-0 items-center gap-1.5 text-xs text-zinc-500">
+        <div className="flex min-w-0 items-center gap-1.5 text-xs text-zinc-400">
           <ListMusic className="size-3.5 shrink-0" aria-hidden="true" />
           {(() => {
             // Meta vrstica ostane KRATKA: ko obstaja zgodovina predvajanja,
@@ -393,11 +393,11 @@ export function EpisodeLibrary({ episodes, loading, onOpen, onDelete, onNew }: E
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Išči po naslovu ali temi …"
               aria-label="Išči epizode"
-              className="h-10 border-zinc-800 bg-zinc-900/60 pl-9 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
+              className="h-10 border-zinc-800 bg-zinc-900/60 pl-9 text-zinc-100 placeholder:text-zinc-400 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
             />
           </div>
           {isFiltering && (
-            <p className="mt-2 text-xs text-zinc-500" role="status">
+            <p className="mt-2 text-xs text-zinc-400" role="status">
               Najdenih: {episodeCountLabel(filtered.length)}
             </p>
           )}

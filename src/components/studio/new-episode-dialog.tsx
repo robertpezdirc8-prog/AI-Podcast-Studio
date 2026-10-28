@@ -366,7 +366,7 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                       'mt-0.5 block text-xs',
                       selected && option.value === 'script'
                         ? 'text-emerald-400'
-                        : 'text-zinc-500',
+                        : 'text-zinc-400',
                     )}
                   >
                     {option.desc}
@@ -381,7 +381,7 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
               {/* Naslov (neobvezno) */}
               <div className="space-y-2">
                 <Label htmlFor="script-title" className="text-zinc-300">
-                  Naslov <span className="font-normal text-zinc-500">(neobvezno)</span>
+                  Naslov <span className="font-normal text-zinc-400">(neobvezno)</span>
                 </Label>
                 <Input
                   id="script-title"
@@ -390,7 +390,7 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                   maxLength={120}
                   placeholder="npr. Ananas na pici: zločin ali genij?"
                   disabled={submitting}
-                  className="border-zinc-800 bg-zinc-900/60 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
+                  className="border-zinc-800 bg-zinc-900/60 text-zinc-100 placeholder:text-zinc-400 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
                 />
               </div>
 
@@ -418,7 +418,7 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                         <DropdownMenuItem key={template.id} onSelect={() => applyTemplate(template)}>
                           <span className="flex min-w-0 flex-col gap-0.5 py-0.5">
                             <span className="text-sm font-medium text-zinc-100">{template.name}</span>
-                            <span className="truncate text-xs text-zinc-500">{template.desc}</span>
+                            <span className="truncate text-xs text-zinc-400">{template.desc}</span>
                           </span>
                         </DropdownMenuItem>
                       ))}
@@ -437,9 +437,9 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                   onChange={(e) => setScriptText(e.target.value)}
                   placeholder={SCRIPT_PLACEHOLDER}
                   disabled={submitting}
-                  className="resize-y border-zinc-800 bg-zinc-900/60 font-mono text-sm leading-relaxed text-zinc-100 placeholder:font-sans placeholder:text-zinc-600 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
+                  className="resize-y border-zinc-800 bg-zinc-900/60 font-mono text-sm leading-relaxed text-zinc-100 placeholder:font-sans placeholder:text-zinc-400 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
                 />
-                <p className="text-xs leading-relaxed text-zinc-500">
+                <p className="text-xs leading-relaxed text-zinc-400">
                   Vsaka vrstica: <code className="text-zinc-400">Ime: besedilo</code>. Vrstica,
                   ki se začne s <code className="text-zinc-400">#</code>, je naslov poglavja.
                   Brez imena = nadaljevanje prejšnjega govorca.
@@ -449,7 +449,7 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                     'text-right text-xs tabular-nums',
                     scriptText.length > SCRIPT_LIMITS.maxChars
                       ? 'text-red-400'
-                      : 'text-zinc-500',
+                      : 'text-zinc-400',
                   )}
                 >
                   {scriptText.length.toLocaleString('sl-SI')} / {SCRIPT_LIMITS.maxChars.toLocaleString('sl-SI')}
@@ -486,7 +486,7 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                     </>
                   )}
                   {!scriptValid && (
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-zinc-400">
                       (potrebna sta vsaj 2 vrstici „Ime: besedilo“)
                     </span>
                   )}
@@ -595,7 +595,7 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                               >
                                 {check.title}
                               </p>
-                              <p className="text-xs leading-relaxed text-zinc-500">
+                              <p className="text-xs leading-relaxed text-zinc-400">
                                 {check.detail}
                               </p>
                             </div>
@@ -626,14 +626,14 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                                   style={{ width: `${Math.round(b.share * 100)}%` }}
                                 />
                               </div>
-                              <span className="w-9 shrink-0 text-right text-xs tabular-nums text-zinc-500">
+                              <span className="w-9 shrink-0 text-right text-xs tabular-nums text-zinc-400">
                                 {Math.round(b.share * 100)} %
                               </span>
                             </div>
                           ))}
                         </div>
                       )}
-                      <p className="border-t border-zinc-800/80 pt-2.5 text-[11px] leading-relaxed text-zinc-600">
+                      <p className="border-t border-zinc-800/80 pt-2.5 text-[11px] leading-relaxed text-zinc-400">
                         Pravila so izpeljana iz poklicne radijske dramaturgije — pregled teče
                         lokalno, brez AI modelov.
                       </p>
@@ -736,7 +736,7 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                       onChange={(e) => setTopic(e.target.value)}
                       placeholder="O čem naj bo podcast?"
                       disabled={submitting}
-                      className="resize-none border-zinc-800 bg-zinc-900/60 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
+                      className="resize-none border-zinc-800 bg-zinc-900/60 text-zinc-100 placeholder:text-zinc-400 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
                     />
                     <div className="flex flex-wrap gap-1.5">
                       {TOPIC_SUGGESTIONS.map((suggestion) => (
@@ -763,9 +763,9 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                       onChange={(e) => setUrl(e.target.value)}
                       placeholder="https://… članek, ki ga AI spremeni v podcast"
                       disabled={submitting}
-                      className="border-zinc-800 bg-zinc-900/60 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
+                      className="border-zinc-800 bg-zinc-900/60 text-zinc-100 placeholder:text-zinc-400 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
                     />
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-zinc-400">
                       AI prebere članek in iz njega napiše epizodo.
                     </p>
                   </div>
@@ -779,12 +779,12 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                       onChange={(e) => setSourceText(e.target.value)}
                       placeholder="Prilepi besedilo (članek, zapiski, transkript …) iz katerega AI napiše epizodo."
                       disabled={submitting}
-                      className="resize-none border-zinc-800 bg-zinc-900/60 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
+                      className="resize-none border-zinc-800 bg-zinc-900/60 text-zinc-100 placeholder:text-zinc-400 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
                     />
                     <p
                       className={cn(
                         'text-right text-xs tabular-nums',
-                        sourceText.trim().length >= 100 ? 'text-emerald-500' : 'text-zinc-500',
+                        sourceText.trim().length >= 100 ? 'text-emerald-500' : 'text-zinc-400',
                       )}
                     >
                       {sourceText.trim().length} znakov / min. 100
@@ -822,7 +822,7 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                           <Clock className="size-3.5 shrink-0" aria-hidden="true" />
                           {option.label}
                         </span>
-                        <span className="mt-0.5 block text-xs leading-snug text-zinc-500">
+                        <span className="mt-0.5 block text-xs leading-snug text-zinc-400">
                           {option.desc}
                         </span>
                       </button>
@@ -855,9 +855,9 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                       maxLength={2000}
                       placeholder="npr. naj bo tekmovalno, ali: poudari zgodovino, ne tehnikalij"
                       disabled={submitting}
-                      className="resize-none border-zinc-800 bg-zinc-900/60 text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
+                      className="resize-none border-zinc-800 bg-zinc-900/60 text-sm text-zinc-100 placeholder:text-zinc-400 focus-visible:border-amber-500/50 focus-visible:ring-amber-500/20"
                     />
-                    <p className="text-right text-xs tabular-nums text-zinc-500">{focus.length} / 2000</p>
+                    <p className="text-right text-xs tabular-nums text-zinc-400">{focus.length} / 2000</p>
                   </div>
                 )}
               </div>
@@ -890,7 +890,7 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                         >
                           {option.label}
                         </span>
-                        <span className="mt-0.5 block text-xs leading-snug text-zinc-500">
+                        <span className="mt-0.5 block text-xs leading-snug text-zinc-400">
                           {option.desc}
                         </span>
                       </button>
@@ -931,7 +931,7 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
           {/* Glasi — predogled (uporabno v obeh načinih) */}
           <div className="space-y-2">
             <Label className="text-zinc-300">Glasi</Label>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-zinc-400">
               Poslušaj razpoložljive glasove — v slušalkah sta privzeta voditelja rahlo umestjena (Rok levo, Petra desno)
             </p>
             <ul className="space-y-1.5">
@@ -962,7 +962,7 @@ export function NewEpisodeDialog({ open, onOpenChange, onCreated }: NewEpisodeDi
                         <span className="block text-sm font-medium text-zinc-200">
                           {voice.name}
                         </span>
-                        <span className="block text-xs text-zinc-500">{voice.desc}</span>
+                        <span className="block text-xs text-zinc-400">{voice.desc}</span>
                       </div>
                       {isPlaying && <span className="text-xs text-amber-400">predvajam …</span>}
                     </li>

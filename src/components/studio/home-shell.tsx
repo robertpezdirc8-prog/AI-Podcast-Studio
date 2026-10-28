@@ -150,7 +150,7 @@ export function HomeShell() {
                   )}
                 </AnimatePresence>
               </div>
-              <p className="hidden text-xs text-zinc-500 sm:block">
+              <p className="hidden text-xs text-zinc-400 sm:block">
                 Ustvari podcast z umetno inteligenco
               </p>
             </div>
@@ -239,7 +239,7 @@ export function HomeShell() {
 
       <footer className="mt-auto border-t border-zinc-800 py-4">
         <div className="flex flex-col items-center justify-center gap-1.5 px-4 sm:flex-row sm:gap-3">
-          <p className="text-center text-xs text-zinc-500">
+          <p className="text-center text-xs text-zinc-400">
             AI Podcast Studio — narejeno z Z.ai veščinami (LLM + TTS)
           </p>
           <a

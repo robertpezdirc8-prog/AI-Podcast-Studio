@@ -94,11 +94,11 @@ export function ScenarioSearchBar({
         }}
         placeholder="Išči po scenariju …"
         aria-label="Išči po scenariju"
-        className="h-8 w-24 min-w-0 border-0 bg-transparent text-sm text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-0 sm:w-48"
+        className="h-8 w-24 min-w-0 border-0 bg-transparent text-sm text-zinc-100 placeholder:text-zinc-400 focus-visible:ring-0 sm:w-48"
       />
       {query.trim().length >= 2 && (
         <span
-          className="shrink-0 text-[11px] tabular-nums text-zinc-500"
+          className="shrink-0 text-[11px] tabular-nums text-zinc-400"
           aria-live="polite"
           aria-label={`Zadetek ${hasMatches ? activeIndex + 1 : 0} od ${matchCount}`}
         >

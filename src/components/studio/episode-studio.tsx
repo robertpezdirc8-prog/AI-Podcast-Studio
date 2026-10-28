@@ -2032,7 +2032,7 @@ export function EpisodeStudio({
           <X className="size-3" aria-hidden="true" />
           Prekliči
         </Button>
-        <span className="text-xs text-zinc-600">
+        <span className="text-xs text-zinc-400">
           ⌘/Ctrl + Enter · {insertText.length}/900
         </span>
       </div>
@@ -2119,7 +2119,7 @@ export function EpisodeStudio({
                   )}
                 </Badge>
               )}
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-zinc-400">
                 {totalCount} {totalCount === 1 ? 'vrstica' : 'vrstic'}
               </span>
             </div>
@@ -2134,7 +2134,7 @@ export function EpisodeStudio({
                     >
                       <span className={cn('size-2 rounded-full', color.dot)} aria-hidden="true" />
                       <span className="font-medium text-zinc-200">{host.name}</span>
-                      <span className="text-zinc-500">· {VOICES[host.voice]?.name ?? host.voice}</span>
+                      <span className="text-zinc-400">· {VOICES[host.voice]?.name ?? host.voice}</span>
                     </span>
                   );
                 })}
@@ -2181,7 +2181,7 @@ export function EpisodeStudio({
                       )}
                       <span className="flex min-w-0 flex-col">
                         <span>{label}</span>
-                        {hint && <span className="text-[11px] text-zinc-500">{hint}</span>}
+                        {hint && <span className="text-[11px] text-zinc-400">{hint}</span>}
                       </span>
                     </DropdownMenuItem>
                   ))}
@@ -2314,7 +2314,7 @@ export function EpisodeStudio({
           <TabsContent value="scenarij" className="mt-4">
         <section aria-label="Scenarij">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+            <h3 className="text-xs font-semibold tracking-[0.2em] text-zinc-400 uppercase">
               Scenarij
             </h3>
             {searchOpen ? (
@@ -2350,7 +2350,7 @@ export function EpisodeStudio({
                 >
                   <Keyboard className="size-4" aria-hidden="true" />
                 </Button>
-                <span className="text-xs tabular-nums text-zinc-500">
+                <span className="text-xs tabular-nums text-zinc-400">
                   {readyCount}/{totalCount} vrstic z glasom
                 </span>
               </div>
@@ -2400,7 +2400,7 @@ export function EpisodeStudio({
                     <div className="flex flex-wrap items-center gap-x-2">
                       <span className="text-sm font-semibold text-zinc-200">{line.speaker}</span>
                       {line.emotion && (
-                        <span className="text-xs italic text-zinc-500">{line.emotion}</span>
+                        <span className="text-xs italic text-zinc-400">{line.emotion}</span>
                       )}
                     </div>
                     {isEditing ? (
@@ -2449,7 +2449,7 @@ export function EpisodeStudio({
                             <X className="size-3" aria-hidden="true" />
                             Prekliči
                           </Button>
-                          <span className="text-xs text-zinc-600">⌘/Ctrl + Enter</span>
+                          <span className="text-xs text-zinc-400">⌘/Ctrl + Enter</span>
                         </div>
                       </div>
                     ) : (
@@ -2627,7 +2627,7 @@ export function EpisodeStudio({
                             )}
                             <span className="flex min-w-0 flex-col">
                               <span>Izrezek MP4 — 9:16</span>
-                              <span className="text-[11px] text-zinc-500">
+                              <span className="text-[11px] text-zinc-400">
                                 TikTok/Reels · generiranje 5–30 s
                               </span>
                             </span>
@@ -2649,7 +2649,7 @@ export function EpisodeStudio({
                               )}
                               <span className="flex min-w-0 flex-col">
                                 <span>Izrezek poglavja MP3</span>
-                                <span className="text-[11px] text-zinc-500">{line.chapter}</span>
+                                <span className="text-[11px] text-zinc-400">{line.chapter}</span>
                               </span>
                             </DropdownMenuItem>
                           )}
@@ -2669,7 +2669,7 @@ export function EpisodeStudio({
                                 )}
                                 <span className="flex min-w-0 flex-col">
                                   <span>Shorts MP4 — podnapisi</span>
-                                  <span className="text-[11px] text-zinc-500">
+                                  <span className="text-[11px] text-zinc-400">
                                     TikTok/Reels · {line.chapter} · 3 stili · 5–40 s
                                   </span>
                                 </span>
@@ -2692,7 +2692,7 @@ export function EpisodeStudio({
                                     <Icon className="size-4" aria-hidden="true" />
                                     <span className="flex min-w-0 flex-col">
                                       <span>{label}</span>
-                                      <span className="text-[11px] text-zinc-500">{desc}</span>
+                                      <span className="text-[11px] text-zinc-400">{desc}</span>
                                     </span>
                                   </DropdownMenuItem>
                                 ))}
@@ -2799,7 +2799,7 @@ export function EpisodeStudio({
             {episode.summary ? (
               <ShowNotesPanel summary={episode.summary} />
             ) : (
-              <p className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-6 text-sm leading-relaxed text-zinc-500">
+              <p className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-6 text-sm leading-relaxed text-zinc-400">
                 Za to epizodo ni zapiskov. Povzetek, ključne točke in oznake nastanejo, ko
                 epizodo ustvariš iz teme ali vira (AI scenarij).
               </p>
@@ -2814,7 +2814,7 @@ export function EpisodeStudio({
                 </CardContent>
               </Card>
             ) : (
-              <p className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-6 text-sm leading-relaxed text-zinc-500">
+              <p className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-6 text-sm leading-relaxed text-zinc-400">
                 Dramaturgija bo na voljo, ko epizoda dobi vrstice scenarija.
               </p>
             )}

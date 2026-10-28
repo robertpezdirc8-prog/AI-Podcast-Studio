@@ -102,7 +102,7 @@ export function ShareDialog({ episodeId, episodeTitle, open, onOpenChange }: Sha
         </DialogHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-8 text-sm text-zinc-500">
+          <div className="flex items-center justify-center gap-2 py-8 text-sm text-zinc-400">
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
             Nalagam stanje delitve …
           </div>
@@ -112,7 +112,7 @@ export function ShareDialog({ episodeId, episodeTitle, open, onOpenChange }: Sha
             <div className="flex items-center justify-between gap-4 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-zinc-100">Javna povezava</p>
-                <p className="mt-0.5 text-xs leading-relaxed text-zinc-500">
+                <p className="mt-0.5 text-xs leading-relaxed text-zinc-400">
                   Vsi, ki imajo povezavo, lahko epizodo poslušajo, preberejo prepis in
                   prenesejo MP3.
                 </p>
@@ -183,7 +183,7 @@ export function ShareDialog({ episodeId, episodeTitle, open, onOpenChange }: Sha
                     </Badge>
                   )}
                 </div>
-                <p className="text-[11px] leading-relaxed text-zinc-600">
+                <p className="text-[11px] leading-relaxed text-zinc-400">
                   Prvi zagon predvajanja pripravi skupni MP3 (traja nekaj sekund), nato se
                   založi na disku.
                 </p>
@@ -191,7 +191,7 @@ export function ShareDialog({ episodeId, episodeTitle, open, onOpenChange }: Sha
             )}
 
             {!enabled && (
-              <p className="text-xs leading-relaxed text-zinc-500">
+              <p className="text-xs leading-relaxed text-zinc-400">
                 Izklopljena povezava preneha delovati takoj. Če jo kasneje znova vklopiš,
                 žeton ostane enak — stara povezava spet deluje.
               </p>

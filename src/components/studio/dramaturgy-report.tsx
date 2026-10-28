@@ -90,14 +90,14 @@ export function DramaturgyReport({ analysis, realSeconds }: DramaturgyReportProp
             title={stat.hint}
             className="min-w-24 flex-1 rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 sm:flex-none sm:basis-28"
           >
-            <p className="text-[11px] font-medium tracking-wide text-zinc-500 uppercase">
+            <p className="text-[11px] font-medium tracking-wide text-zinc-400 uppercase">
               {stat.label}
             </p>
             <p className="mt-0.5 text-lg leading-tight font-semibold tabular-nums text-zinc-100">
               {stat.value}
             </p>
             {stat.hint && (
-              <p className="mt-0.5 truncate text-[11px] text-zinc-600">{stat.hint}</p>
+              <p className="mt-0.5 truncate text-[11px] text-zinc-400">{stat.hint}</p>
             )}
           </div>
         ))}
@@ -105,7 +105,7 @@ export function DramaturgyReport({ analysis, realSeconds }: DramaturgyReportProp
 
       {/* Pregledi */}
       <div className="space-y-3">
-        <h4 className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+        <h4 className="text-xs font-semibold tracking-[0.2em] text-zinc-400 uppercase">
           Dramaturški pregled
           {analysis.warnings > 0 && (
             <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] tracking-normal text-amber-400 normal-case">
@@ -145,7 +145,7 @@ export function DramaturgyReport({ analysis, realSeconds }: DramaturgyReportProp
                 >
                   {check.title}
                 </p>
-                <p className="mt-0.5 text-xs leading-relaxed text-zinc-500">{check.detail}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-zinc-400">{check.detail}</p>
               </div>
             </li>
           ))}
@@ -155,7 +155,7 @@ export function DramaturgyReport({ analysis, realSeconds }: DramaturgyReportProp
       {/* Ravnovesje govorcev */}
       {analysis.balance.length >= 2 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+          <h4 className="text-xs font-semibold tracking-[0.2em] text-zinc-400 uppercase">
             Ravnovesje govorcev
           </h4>
           {analysis.balance.map((b, i) => (
@@ -175,7 +175,7 @@ export function DramaturgyReport({ analysis, realSeconds }: DramaturgyReportProp
                   style={{ width: `${Math.round(b.share * 100)}%` }}
                 />
               </div>
-              <span className="w-32 shrink-0 text-right text-xs tabular-nums text-zinc-500">
+              <span className="w-32 shrink-0 text-right text-xs tabular-nums text-zinc-400">
                 {b.lines} vrst. · {b.words} besed
               </span>
             </div>
@@ -183,7 +183,7 @@ export function DramaturgyReport({ analysis, realSeconds }: DramaturgyReportProp
         </div>
       )}
 
-      <p className="text-[11px] leading-relaxed text-zinc-600">
+      <p className="text-[11px] leading-relaxed text-zinc-400">
         Pravila so izpeljana iz poklicne radijske dramaturgije (kavelj, vodniki, poglavja,
         monologi, ravnovesje, zaključek, tempo) — pregled teče lokalno, brez AI modelov.
       </p>

@@ -54,7 +54,7 @@ AI Podcast Studio je splet aplikacija, ki iz ene teme samostojno napiše dvogost
 - **Jantarni fokusni obroč po celem vmesniku** — shadcn `ring` (`--ring` = amber-500) + lastni `:focus-visible` outline za navadne elemente; miškin klik ne prižge obroča
 - **Drsniki napovejo ČAS, ne številke** — `aria-valuetext` »0:45 od 2:10« na drsniku položaja (studio + delitev, navaden drsnik in oblika valovanja); Radix `aria-label`/`aria-valuetext` so zdaj na Thumb-u (element z `role="slider"`), ne le na Root
 - **Objave stanj** — »Kopirano« v dialogu za deljenje se objavi bralcem zaslona (`aria-live`), ne le vizualno
-- **Kontrast na delitveni strani** — informativna besedila (časovni žigi, naslovi razdelkov, namigi, peta) s cink-500/600 → cink-400 (≥ 4,5:1 na cink-950)
+- **Kontrast po celem vmesniku** — informativna besedila (časovni žigi, števeci, naslovi razdelkov, namigi, helperji, pete) s cink-500/600 → cink-400 (≥ 4,5:1 na temnem ozadju); placeholdri `placeholder:text-zinc-400` (enako shadcn privzetku); dekorativne ikone/ločila ostanejo prigušena
 - **`metadataBase`** — OG/Twitter povezave se absolutizirajo brez Next.js opozorila (`NEXT_PUBLIC_APP_URL` v produkciji)
 - **`prefers-reduced-motion`** — utripanja/vrtenja/prehodi se umirijo za uporabnike z zmanjšanim gibanjem
 
